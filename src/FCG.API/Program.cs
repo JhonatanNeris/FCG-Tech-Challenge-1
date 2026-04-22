@@ -1,12 +1,12 @@
 using FCG.API.Endpoints;
 using FCG.API.Middlewares;
-using FCG.API.Services;
 using FCG.Application.Interfaces;
 using FCG.Application.Services;
 using FCG.Application.Validators;
 using FCG.Domain.Interfaces;
 using FCG.Infrastructure.Data;
 using FCG.Infrastructure.Repositories;
+using FCG.Infrastructure.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
