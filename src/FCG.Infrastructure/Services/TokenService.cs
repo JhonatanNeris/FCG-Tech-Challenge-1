@@ -14,7 +14,7 @@ public class TokenService : ITokenService
 
     public TokenService(IConfiguration config)
     {
-        _key = config["Jwt:Key"] ?? "SUA_CHAVE_SECRETA_MUUUIITOOO_SEGURAA_AQUI_DEVE_TER_PELO_MENOS_32_BYTES!!!";
+        _key = config["Jwt:Key"] ?? throw new Exception("Chave JWT não configurada.");
     }
 
     public string GenerateToken(User user)
