@@ -28,7 +28,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 // Configura o DbContext com a string de conexão do appsettings.json
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString, x => x.MigrationsAssembly("FCG.Infrastructure")), ServiceLifetime.Scoped);
+    options.UseSqlServer(connectionString, x => x.MigrationsAssembly("FCG.Infrastructure")).LogTo(Console.WriteLine, LogLevel.Information), ServiceLifetime.Scoped);
 
 // Injeção de Dependências - Repositórios
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -47,7 +47,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserValidator>();
 
 // Autenticação e Autorização via JWT
-var keyParam = builder.Configuration["Jwt:Key"] ?? "SUA_CHAVE_SECRETA_MUUUIITOOO_SEGURAA_AQUI_DEVE_TER_PELO_MENOS_32_BYTES!!!";
+var keyParam = builder.Configuration["Jwt:Key"];
 var key = Encoding.ASCII.GetBytes(keyParam);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -99,6 +99,21 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        context.Database.Migrate(); 
+        Console.WriteLine("Banco de dados atualizado com sucesso!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Ocorreu um erro ao aplicar as migrações: {ex.Message}");
+    }
+}
 
 app.UseExceptionHandler(); 
 

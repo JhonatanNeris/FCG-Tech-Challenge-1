@@ -46,20 +46,57 @@ Recentemente ocorreram mudanças arquiteturais significativas:
 ### Passos
 
 1. **Clone o repositório e acesse a pasta raiz.**
-2. **Atualize as credenciais no `appsettings.json` (no projeto FCG.API):**
+2. **Caso deseje rodar o banco de dados no Docker**, siga o tutorial logo abaixo antes de executar o projeto.
+3. **Atualize as credenciais no `appsettings.json` (no projeto FCG.API):**
    Verifique a connection string `"DefaultConnection"` e tenha certeza de que o SQL Server está acessível.
-3. **Aplicar Migrations:**
+   ```
+   "DefaultConnection": "Server=localhost,1433;Database=FCGDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;"
+   ```
+   *Altere `YourStrong!Passw0rd` se desejar outra senha.*
+   > **Nota:** O contêiner utiliza a imagem oficial `mcr.microsoft.com/mssql/server:2022-latest`. A senha padrão (`YourStrong!Passw0rd`) deve atender aos requisitos de complexidade do SQL Server.
+   
+4. **Aplicar Migrations:**
+
+   Caso não tenha o EF Core CLI instalado: 
+   ```bash
+   dotnet tool install --global dotnet-ef
+
+   export PATH="$PATH:$HOME/.dotnet/tools"
+   ```
+
    No diretório do projeto da API (`src/FCG.API`), execute o seguinte comando para criar a base de dados:
    ```bash
    dotnet ef database update --project ../FCG.Infrastructure
    ```
-4. **Executar a API:**
+      
+5. **Executar a API:**
    Ainda no diretório da API, execute o comando:
    ```bash
    dotnet run
    ```
-5. **Acessar a documentação (Swagger):**
+6. **Acessar a documentação (Swagger):**
    Com o ambiente em modo de desenvolvimento, acesse a URL base (ex: `https://localhost:7123/swagger`) no navegador para testar os endpoints interativamente.
+
+### 🐳 Executando SQL Server via Docker
+
+Para facilitar o desenvolvimento, você pode rodar o SQL Server em um contêiner Docker usando o `docker-compose.yml` já incluído no projeto.
+
+1. **Instale o Docker** se ainda não o fez.
+2. **Inicie o contêiner**:
+   ```bash
+   docker-compose up -d
+   ```
+   Isso criará um contêiner chamado `fcg_sqlserver` expondo a porta **1433**.
+
+3. **Aguarde o SQL Server iniciar** (aproximadamente 30‑40 s). Você pode checar o log:
+   ```bash
+   docker logs -f fcg_sqlserver
+   ```
+
+4. **Parar o contêiner** quando não precisar mais:
+   ```bash
+   docker-compose down   
+   ```
 
 ## 🔒 Autenticação
 

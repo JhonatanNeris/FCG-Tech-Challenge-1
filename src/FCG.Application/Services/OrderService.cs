@@ -13,7 +13,6 @@ public class OrderService : IOrderService
     private readonly IUserRepository _userRepository;
     private readonly IPromotionRepository _promotionRepository;
 
-
     public OrderService(IGameRepository gameRepository, IOrderRepository orderRepository, IUserRepository userRepository, IPromotionRepository promotionRepository)
     {
         _gameRepository = gameRepository;
@@ -24,19 +23,15 @@ public class OrderService : IOrderService
 
     public async Task ApprovePaymentAsync(Guid orderId)
     {
-        var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null)
-        {
+        var order = await _orderRepository.GetByIdAsync(orderId) ?? 
             throw new Exception($"Pedido com ID {orderId} não encontrado.");
-        }
         if (order.Status != OrderStatus.Pending)
         {
             throw new Exception($"Pedido com ID {orderId} não está em status Pendente.");
         }
 
-        var user = await _userRepository.GetByIdAsync(order.UserId);
-        if (user == null) throw new Exception("Usuário não encontrado.");
-
+        var user = await _userRepository.GetByIdAsync(order.UserId) ?? 
+            throw new Exception("Usuário não encontrado.");
         order.MarkAsPaid();
 
         foreach (var item in order.Items)
@@ -56,12 +51,8 @@ public class OrderService : IOrderService
         foreach (var gameId in dto.GameIds)
         {
             {
-                var game = await _gameRepository.GetByIdAsync(gameId);
-
-                if (game == null)
-                {
+                var game = await _gameRepository.GetByIdAsync(gameId) ??
                     throw new Exception($"Jogo com ID {gameId} não encontrado.");
-                }
 
                 var activePromotions = await _promotionRepository.GetActivePromotionsByGameIdAsync(gameId);
                 var bestPromotion = activePromotions.OrderByDescending(p => p.DiscountPercentage).FirstOrDefault();
@@ -79,7 +70,6 @@ public class OrderService : IOrderService
 
         await _orderRepository.AddAsync(order);
         return MapToDto(order);
-
     }
 
     public async Task<OrderDto> GetOrderByIdAsync(Guid orderId)
@@ -95,10 +85,6 @@ public class OrderService : IOrderService
     public async Task<IEnumerable<OrderDto>> GetUserOrdersAsync(Guid userId)
     {
         var orders = await _orderRepository.GetByUserIdAsync(userId);
-        if (orders == null || !orders.Any())
-        {
-            throw new Exception($"Nenhum pedido encontrado para o usuário com ID {userId}.");
-        }
         return orders.Select(MapToDto);
     }
 

@@ -3,7 +3,7 @@
     public class Promotion
     {
         public Guid Id { get; private set; }
-        public string Name { get; private set; }
+        public string Name { get; private set; } = string.Empty;
         public Guid GameId { get; private set; }
         public Game Game { get; private set; } = null!;
         public decimal DiscountPercentage { get; private set; }
