@@ -13,7 +13,7 @@ public static class DatabaseSeeder
 
     public static async Task SeedAsync(AppDbContext context, string secretKey)
     {
-        var adminExists = await context.Users.AnyAsync(u => u.Email == AdminEmail);
+        var adminExists = await context.Users.AnyAsync(user => user.Email == AdminEmail);
         if (adminExists)
         {
             return;

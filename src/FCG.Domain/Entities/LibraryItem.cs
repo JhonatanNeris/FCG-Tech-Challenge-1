@@ -1,6 +1,6 @@
 namespace FCG.Domain.Entities;
 
-public class LibraryItem(Guid userId, Guid gameId)
+public class LibraryItem(Guid userId, Guid gameId) : Entity
 {
     public Guid UserId { get; private set; } = userId;
     public User User { get; private set; } = null!;

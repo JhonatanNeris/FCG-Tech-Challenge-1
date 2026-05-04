@@ -7,7 +7,7 @@ using FCG.Domain.Interfaces;
 
 namespace FCG.Application.Services;
 
-public class OrderService(
+public sealed class OrderService(
     IGameRepository gameRepository,
     IOrderRepository orderRepository,
     IUserRepository userRepository,
@@ -25,7 +25,7 @@ public class OrderService(
         var order = orderResult.Value;
         if (order.Status != OrderStatus.Pending)
         {
-            return Result.Failure(Error.Validation("Orders.InvalidStatus", $"Pedido com ID {orderId} nao esta em status Pendente."));
+            return Result.Failure(Errors.Orders.NotPending(orderId));
         }
 
         var userResult = await userRepository.GetByIdAsync(order.UserId);
@@ -59,7 +59,7 @@ public class OrderService(
     {
         if (!dto.GameIds.Any())
         {
-            return Result<OrderDto>.Failure(Error.InvalidRequest("Orders.EmptyGames", "Informe ao menos um jogo para criar o pedido."));
+            return Result<OrderDto>.Failure(Errors.Orders.EmptyGames);
         }
 
         var order = new Order(userId);
@@ -78,7 +78,9 @@ public class OrderService(
                 return Result<OrderDto>.Failure(activePromotionsResult.Error!);
             }
 
-            var bestPromotion = activePromotionsResult.Value.OrderByDescending(p => p.DiscountPercentage).FirstOrDefault();
+            var bestPromotion = activePromotionsResult.Value
+                .OrderByDescending(promotion => promotion.DiscountPercentage)
+                .FirstOrDefault();
             decimal priceAtPurchase = gameResult.Value.Price;
 
             if (bestPromotion != null)
@@ -129,10 +131,10 @@ public class OrderService(
             order.CreatedAt,
             order.TotalAmount,
             order.Status.ToString(),
-            order.Items.Select(i => new OrderItemDto(
-                i.GameId,
-                i.Game?.Title ?? "Jogo Desconhecido",
-                i.PriceAtPurchase
+            order.Items.Select(orderItem => new OrderItemDto(
+                orderItem.GameId,
+                orderItem.Game?.Title ?? "Jogo Desconhecido",
+                orderItem.PriceAtPurchase
             )).ToList()
         );
     }

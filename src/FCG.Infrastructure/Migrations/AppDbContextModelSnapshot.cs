@@ -51,6 +51,10 @@ namespace FCG.Infrastructure.Migrations
 
             modelBuilder.Entity("FCG.Domain.Entities.LibraryItem", b =>
                 {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -60,9 +64,12 @@ namespace FCG.Infrastructure.Migrations
                     b.Property<DateTime>("AcquiredAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("UserId", "GameId");
+                    b.HasKey("Id");
 
                     b.HasIndex("GameId");
+
+                    b.HasIndex("UserId", "GameId")
+                        .IsUnique();
 
                     b.ToTable("UserGames");
                 });

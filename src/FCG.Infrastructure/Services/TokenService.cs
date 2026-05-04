@@ -2,15 +2,16 @@
 using FCG.Application.Settings;
 using FCG.Domain.Entities;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
 namespace FCG.Infrastructure.Services;
 
-public class TokenService(JwtSettings jwtSettings) : ITokenService
+public sealed class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
 {
-    private readonly string _key = jwtSettings.Key;
+    private readonly string _key = jwtSettings.Value.Key;
 
     public string GenerateToken(User user)
     {

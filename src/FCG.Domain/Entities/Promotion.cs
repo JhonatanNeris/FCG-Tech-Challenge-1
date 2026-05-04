@@ -1,8 +1,7 @@
 namespace FCG.Domain.Entities;
 
-public class Promotion(string name, Guid gameId, decimal discountPercentage, DateTime startDate, DateTime endDate)
+public class Promotion(string name, Guid gameId, decimal discountPercentage, DateTime startDate, DateTime endDate) : Entity
 {
-    public Guid Id { get; private set; } = Guid.NewGuid();
     public string Name { get; private set; } = name;
     public Guid GameId { get; private set; } = gameId;
     public Game Game { get; private set; } = null!;

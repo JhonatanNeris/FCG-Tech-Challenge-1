@@ -8,11 +8,11 @@ public class UserMap() : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.HasKey(u => u.Id);
-        builder.Property(u => u.Name).IsRequired().HasMaxLength(150);
-        builder.Property(u => u.Email).IsRequired().HasMaxLength(150);
-        builder.HasIndex(u => u.Email).IsUnique();
-        builder.Property(u => u.PasswordHash).IsRequired();
-        builder.Property(u => u.Role).IsRequired();
+        builder.HasKey(user => user.Id);
+        builder.Property(user => user.Name).IsRequired().HasMaxLength(150);
+        builder.Property(user => user.Email).IsRequired().HasMaxLength(150);
+        builder.HasIndex(user => user.Email).IsUnique();
+        builder.Property(user => user.PasswordHash).IsRequired();
+        builder.Property(user => user.Role).IsRequired();
     }
 }

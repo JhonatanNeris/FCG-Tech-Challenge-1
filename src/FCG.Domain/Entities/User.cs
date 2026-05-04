@@ -2,9 +2,8 @@ using FCG.Domain.Enums;
 
 namespace FCG.Domain.Entities;
 
-public class User(string name, string email, string passwordHash, Role role)
+public class User(string name, string email, string passwordHash, Role role) : Entity
 {
-    public Guid Id { get; private set; } = Guid.NewGuid();
     public string Name { get; private set; } = name;
     public string Email { get; private set; } = email;
     public string PasswordHash { get; private set; } = passwordHash;
@@ -18,7 +17,7 @@ public class User(string name, string email, string passwordHash, Role role)
 
     public void AddGameToLibrary(Game game)
     {
-        if (!LibraryItems.Any(ug => ug.GameId == game.Id))
+        if (!LibraryItems.Any(libraryItem => libraryItem.GameId == game.Id))
         {
             LibraryItems.Add(new LibraryItem(Id, game.Id));
         }

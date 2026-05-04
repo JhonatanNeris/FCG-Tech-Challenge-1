@@ -1,0 +1,47 @@
+namespace FCG.Domain.Common;
+
+public static class Errors
+{
+    public static class Auth
+    {
+        public static Error InvalidCredentials => Error.Unauthorized("Auth.InvalidCredentials", "Credenciais invalidas.");
+        public static Error RegisterFailed => Error.Validation("Auth.RegisterFailed", "Nao foi possivel concluir o cadastro com os dados informados.");
+    }
+
+    public static class Games
+    {
+        public static Error NotFound => Error.NotFound("Games.NotFound", "Jogo nao encontrado.");
+    }
+
+    public static class Orders
+    {
+        public static Error NotFound => Error.NotFound("Orders.NotFound", "Pedido nao encontrado.");
+        public static Error EmptyGames => Error.InvalidRequest("Orders.EmptyGames", "Informe ao menos um jogo para criar o pedido.");
+        public static Error InvalidStatus(string message) => Error.Validation("Orders.InvalidStatus", message);
+        public static Error NotPending(Guid orderId) => InvalidStatus($"Pedido com ID {orderId} nao esta em status Pendente.");
+        public static Error CannotAddItemsToNonPendingOrder => InvalidStatus("Nao e possivel adicionar itens a um pedido que nao esta pendente.");
+        public static Error OnlyPendingOrdersCanBePaid => InvalidStatus("Apenas pedidos pendentes podem ser marcados como pagos.");
+        public static Error OnlyPendingOrdersCanBeCanceled => InvalidStatus("Apenas pedidos pendentes podem ser cancelados.");
+    }
+
+    public static class Pagination
+    {
+        public static Error InvalidPage => Error.InvalidRequest("Pagination.InvalidPage", "Pagina deve ser maior ou igual a 1.");
+    }
+
+    public static class Promotions
+    {
+        public static Error NotFound => Error.NotFound("Promotions.NotFound", "Promocao nao encontrada.");
+    }
+
+    public static class UnitOfWork
+    {
+        public static Error CommitFailed(string message) => Error.Failure("UnitOfWork.CommitFailed", message);
+    }
+
+    public static class Users
+    {
+        public static Error NotFound => Error.NotFound("Users.NotFound", "Usuario nao encontrado.");
+        public static Error NotFoundByEmail => Error.NotFound("Users.NotFoundByEmail", "Usuario nao encontrado.");
+    }
+}

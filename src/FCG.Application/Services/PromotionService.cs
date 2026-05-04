@@ -4,22 +4,23 @@ using FCG.Application.Settings;
 using FCG.Domain.Common;
 using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace FCG.Application.Services;
 
-public class PromotionService(
+public sealed class PromotionService(
     IPromotionRepository promotionRepository,
     IGameRepository gameRepository,
     IUnitOfWork unitOfWork,
-    PaginationSettings paginationSettings) : IPromotionService
+    IOptions<PaginationSettings> paginationSettings) : IPromotionService
 {
-    private readonly int _pageSize = paginationSettings.PageSize;
+    private readonly int _pageSize = paginationSettings.Value.PageSize;
 
     public async Task<Result<PagedResult<PromotionDto>>> GetAllActiveAsync(int page)
     {
         if (page < 1)
         {
-            return Result<PagedResult<PromotionDto>>.Failure(Error.InvalidRequest("Pagination.InvalidPage", "Pagina deve ser maior ou igual a 1."));
+            return Result<PagedResult<PromotionDto>>.Failure(Errors.Pagination.InvalidPage);
         }
 
         var promotionsResult = await promotionRepository.GetAllActiveAsync(new PaginationParameters(page, _pageSize));

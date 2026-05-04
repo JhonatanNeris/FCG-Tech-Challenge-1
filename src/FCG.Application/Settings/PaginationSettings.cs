@@ -1,3 +1,6 @@
 namespace FCG.Application.Settings;
 
-public sealed record PaginationSettings(int PageSize);
+public sealed class PaginationSettings
+{
+    public int PageSize { get; set; }
+}

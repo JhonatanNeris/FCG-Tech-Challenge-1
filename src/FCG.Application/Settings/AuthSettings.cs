@@ -1,3 +1,6 @@
 namespace FCG.Application.Settings;
 
-public sealed record AuthSettings(string SecretKey);
+public sealed class AuthSettings
+{
+    public string SecretKey { get; set; } = string.Empty;
+}

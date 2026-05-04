@@ -3,16 +3,15 @@ using FCG.Domain.Enums;
 
 namespace FCG.Domain.Entities;
 
-public class Order(Guid userId)
+public class Order(Guid userId) : Entity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserId { get; set; } = userId;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public decimal TotalAmount { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public User User { get; set; } = null!;
 
-    private readonly List<OrderItem> _items = new();
+    private readonly List<OrderItem> _items = [];
 
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
 
@@ -24,7 +23,7 @@ public class Order(Guid userId)
     {
         if (Status != OrderStatus.Pending)
         {
-            return Result.Failure(Error.Validation("Orders.InvalidStatus", "Nao e possivel adicionar itens a um pedido que nao esta pendente."));
+            return Result.Failure(Errors.Orders.CannotAddItemsToNonPendingOrder);
         }
 
         _items.Add(new OrderItem(gameId, priceAtPurchase));
@@ -36,7 +35,7 @@ public class Order(Guid userId)
     {
         if (Status != OrderStatus.Pending)
         {
-            return Result.Failure(Error.Validation("Orders.InvalidStatus", "Apenas pedidos pendentes podem ser marcados como pagos."));
+            return Result.Failure(Errors.Orders.OnlyPendingOrdersCanBePaid);
         }
 
         Status = OrderStatus.Paid;
@@ -47,7 +46,7 @@ public class Order(Guid userId)
     {
         if (Status != OrderStatus.Pending)
         {
-            return Result.Failure(Error.Validation("Orders.InvalidStatus", "Apenas pedidos pendentes podem ser cancelados."));
+            return Result.Failure(Errors.Orders.OnlyPendingOrdersCanBeCanceled);
         }
 
         Status = OrderStatus.Canceled;

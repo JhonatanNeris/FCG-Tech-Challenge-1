@@ -7,38 +7,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FCG.Infrastructure.Repositories;
 
-public class GameRepository(AppDbContext context) : IGameRepository
+public class GameRepository(AppDbContext context)
+    : Repository<Game>(context, Errors.Games.NotFound), IGameRepository
 {
-    public async Task<Result> AddAsync(Game game)
-    {
-        await context.Games.AddAsync(game);
-        return Result.Success();
-    }
+    protected override IQueryable<Game> Query => Context.Games.Include(game => game.Promotions);
 
     public async Task<Result<PagedResult<Game>>> GetAllAsync(PaginationParameters pagination)
     {
-        var query = context.Games
-            .Include(g => g.Promotions)
-            .Where(g => g.IsActive)
-            .OrderBy(g => g.Title);
+        var query = Context.Games
+            .Include(game => game.Promotions)
+            .Where(game => game.IsActive)
+            .OrderBy(game => game.Title);
 
         return Result<PagedResult<Game>>.Success(await query.ToPagedResultAsync(pagination));
-    }
-
-    public async Task<Result<Game>> GetByIdAsync(Guid id)
-    {
-        var game = await context.Games
-            .Include(g => g.Promotions)
-            .FirstOrDefaultAsync(g => g.Id == id);
-
-        return game is null
-            ? Result<Game>.Failure(Error.NotFound("Games.NotFound", "Jogo nao encontrado."))
-            : Result<Game>.Success(game);
-    }
-
-    public async Task<Result> UpdateAsync(Game game)
-    {
-        context.Games.Update(game);
-        return Result.Success();
     }
 }

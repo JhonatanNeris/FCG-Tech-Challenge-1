@@ -20,7 +20,7 @@ public class RegisterUserValidatorTests()
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Name");
+        result.Errors.Should().Contain(error => error.PropertyName == "Name");
     }
 
     [Fact]

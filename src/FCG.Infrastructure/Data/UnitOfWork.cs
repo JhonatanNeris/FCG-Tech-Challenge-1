@@ -14,7 +14,7 @@ public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
         }
         catch (Exception ex)
         {
-            return Result.Failure(Error.Failure("UnitOfWork.CommitFailed", ex.Message));
+            return Result.Failure(Errors.UnitOfWork.CommitFailed(ex.Message));
         }
     }
 }
