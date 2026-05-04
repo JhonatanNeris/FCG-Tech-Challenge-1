@@ -1,38 +1,26 @@
-﻿using FCG.Domain.Enums;
-using System.Data;
+using FCG.Domain.Enums;
 
 namespace FCG.Domain.Entities;
 
-public class User
+public class User(string name, string email, string passwordHash, Role role)
 {
-    public Guid Id { get; private set; }
-    public string Name { get; private set; } = string.Empty;
-    public string Email { get; private set; } = string.Empty;
-    public string PasswordHash { get; private set; } = string.Empty;
-    public Role Role { get; private set; }
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public string Name { get; private set; } = name;
+    public string Email { get; private set; } = email;
+    public string PasswordHash { get; private set; } = passwordHash;
+    public Role Role { get; private set; } = role;
 
-    // Relação
     public ICollection<LibraryItem> LibraryItems { get; private set; } = new List<LibraryItem>();
 
-    protected User() { } // EF Core
-
-    public User(string name, string email, string passwordHash, Role role)
+    protected User() : this(string.Empty, string.Empty, string.Empty, Role.User)
     {
-        Id = Guid.NewGuid();
-        Name = name;
-        Email = email;
-        PasswordHash = passwordHash;
-        Role = role;
     }
 
     public void AddGameToLibrary(Game game)
     {
-        // Regra de negócio: não duplicar
         if (!LibraryItems.Any(ug => ug.GameId == game.Id))
         {
-            LibraryItems.Add(new LibraryItem(this.Id, game.Id));
+            LibraryItems.Add(new LibraryItem(Id, game.Id));
         }
     }
-
-
 }

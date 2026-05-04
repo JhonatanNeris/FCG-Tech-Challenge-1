@@ -1,60 +1,56 @@
-﻿using FCG.Domain.Enums;
+using FCG.Domain.Common;
+using FCG.Domain.Enums;
 
 namespace FCG.Domain.Entities;
 
-public class Order
+public class Order(Guid userId)
 {
-    public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; } = userId;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public decimal TotalAmount { get; set; }
-    public OrderStatus Status { get; set; }
-
-    // Navigation properties
+    public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public User User { get; set; } = null!;
 
-    // Itens do pedido
     private readonly List<OrderItem> _items = new();
 
-    // Expor os itens como somente leitura
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
 
-    protected Order() { } 
-
-    public Order(Guid userId)
+    protected Order() : this(Guid.Empty)
     {
-        Id = Guid.NewGuid();
-        UserId = userId;
-        CreatedAt = DateTime.UtcNow;
-        Status = OrderStatus.Pending;
-        TotalAmount = 0;
     }
 
-    public void AddItem(Guid gameId, decimal priceAtPurchase)
+    public Result AddItem(Guid gameId, decimal priceAtPurchase)
     {
         if (Status != OrderStatus.Pending)
-            throw new Exception("Não é possível adicionar itens a um pedido que não está pendente.");
+        {
+            return Result.Failure(Error.Validation("Orders.InvalidStatus", "Nao e possivel adicionar itens a um pedido que nao esta pendente."));
+        }
 
         _items.Add(new OrderItem(gameId, priceAtPurchase));
         TotalAmount += priceAtPurchase;
+        return Result.Success();
     }
 
-    public void MarkAsPaid()
+    public Result MarkAsPaid()
     {
         if (Status != OrderStatus.Pending)
-            throw new Exception("Apenas pedidos pendentes podem ser marcados como pagos.");
+        {
+            return Result.Failure(Error.Validation("Orders.InvalidStatus", "Apenas pedidos pendentes podem ser marcados como pagos."));
+        }
 
         Status = OrderStatus.Paid;
+        return Result.Success();
     }
 
-    public void Cancel()
+    public Result Cancel()
     {
         if (Status != OrderStatus.Pending)
-            throw new Exception("Apenas pedidos pendentes podem ser cancelados.");
+        {
+            return Result.Failure(Error.Validation("Orders.InvalidStatus", "Apenas pedidos pendentes podem ser cancelados."));
+        }
 
         Status = OrderStatus.Canceled;
+        return Result.Success();
     }
-
-
-
 }

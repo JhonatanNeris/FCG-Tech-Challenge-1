@@ -1,11 +1,12 @@
-﻿using FCG.Application.DTOs;
+using FCG.Application.DTOs;
+using FCG.Domain.Common;
 
 namespace FCG.Application.Interfaces;
 
 public interface IOrderService
 {
-    Task<OrderDto> CreateOrderAsync(Guid userId, CreateOrderDto dto);
-    Task<OrderDto> GetOrderByIdAsync(Guid orderId);
-    Task<IEnumerable<OrderDto>> GetUserOrdersAsync(Guid userId);
-    Task ApprovePaymentAsync(Guid orderId);
+    Task<Result<OrderDto>> CreateOrderAsync(Guid userId, CreateOrderDto dto);
+    Task<Result<OrderDto>> GetOrderByIdAsync(Guid orderId);
+    Task<Result<IEnumerable<OrderDto>>> GetUserOrdersAsync(Guid userId);
+    Task<Result> ApprovePaymentAsync(Guid orderId);
 }

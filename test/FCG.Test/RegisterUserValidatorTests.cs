@@ -5,14 +5,9 @@ using Xunit;
 
 namespace FCG.Test;
 
-public class RegisterUserValidatorTests
+public class RegisterUserValidatorTests()
 {
-    private readonly RegisterUserValidator _validator;
-
-    public RegisterUserValidatorTests()
-    {
-        _validator = new RegisterUserValidator();
-    }
+    private readonly RegisterUserValidator _validator = new();
 
     [Fact]
     public void Validate_ShouldHaveError_WhenNameIsEmpty()

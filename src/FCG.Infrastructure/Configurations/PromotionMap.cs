@@ -1,11 +1,10 @@
 ﻿using FCG.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System.Reflection.Emit;
 
 namespace FCG.Infrastructure.Configurations;
 
-internal class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
+internal class PromotionMap() : IEntityTypeConfiguration<Promotion>
 {
     public void Configure(EntityTypeBuilder<Promotion> builder)
     {

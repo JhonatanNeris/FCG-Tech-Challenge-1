@@ -1,91 +1,124 @@
-﻿using FCG.Application.DTOs;
+using FCG.Application.DTOs;
 using FCG.Application.Interfaces;
+using FCG.Domain.Common;
 using FCG.Domain.Entities;
 using FCG.Domain.Enums;
 using FCG.Domain.Interfaces;
 
 namespace FCG.Application.Services;
 
-public class OrderService : IOrderService
+public class OrderService(
+    IGameRepository gameRepository,
+    IOrderRepository orderRepository,
+    IUserRepository userRepository,
+    IPromotionRepository promotionRepository,
+    IUnitOfWork unitOfWork) : IOrderService
 {
-    private readonly IGameRepository _gameRepository;
-    private readonly IOrderRepository _orderRepository;
-    private readonly IUserRepository _userRepository;
-    private readonly IPromotionRepository _promotionRepository;
-
-    public OrderService(IGameRepository gameRepository, IOrderRepository orderRepository, IUserRepository userRepository, IPromotionRepository promotionRepository)
+    public async Task<Result> ApprovePaymentAsync(Guid orderId)
     {
-        _gameRepository = gameRepository;
-        _orderRepository = orderRepository;
-        _userRepository = userRepository;
-        _promotionRepository = promotionRepository;
-    }
-
-    public async Task ApprovePaymentAsync(Guid orderId)
-    {
-        var order = await _orderRepository.GetByIdAsync(orderId) ?? 
-            throw new Exception($"Pedido com ID {orderId} não encontrado.");
-        if (order.Status != OrderStatus.Pending)
+        var orderResult = await orderRepository.GetByIdAsync(orderId);
+        if (orderResult.IsFailure)
         {
-            throw new Exception($"Pedido com ID {orderId} não está em status Pendente.");
+            return Result.Failure(orderResult.Error!);
         }
 
-        var user = await _userRepository.GetByIdAsync(order.UserId) ?? 
-            throw new Exception("Usuário não encontrado.");
-        order.MarkAsPaid();
+        var order = orderResult.Value;
+        if (order.Status != OrderStatus.Pending)
+        {
+            return Result.Failure(Error.Validation("Orders.InvalidStatus", $"Pedido com ID {orderId} nao esta em status Pendente."));
+        }
+
+        var userResult = await userRepository.GetByIdAsync(order.UserId);
+        if (userResult.IsFailure)
+        {
+            return Result.Failure(userResult.Error!);
+        }
+
+        var markAsPaidResult = order.MarkAsPaid();
+        if (markAsPaidResult.IsFailure)
+        {
+            return markAsPaidResult;
+        }
 
         foreach (var item in order.Items)
         {
-            user.AddGameToLibrary(item.Game);
+            userResult.Value.AddGameToLibrary(item.Game);
         }
 
-        await _orderRepository.UpdateAsync(order);
-        await _userRepository.UpdateAsync(user);
+        var orderUpdateResult = await orderRepository.UpdateAsync(order);
+        if (orderUpdateResult.IsFailure)
+        {
+            return orderUpdateResult;
+        }
 
+        var userUpdateResult = await userRepository.UpdateAsync(userResult.Value);
+        return userUpdateResult.IsFailure ? userUpdateResult : await unitOfWork.CommitAsync();
     }
 
-    public async Task<OrderDto> CreateOrderAsync(Guid userId, CreateOrderDto dto)
+    public async Task<Result<OrderDto>> CreateOrderAsync(Guid userId, CreateOrderDto dto)
     {
+        if (!dto.GameIds.Any())
+        {
+            return Result<OrderDto>.Failure(Error.InvalidRequest("Orders.EmptyGames", "Informe ao menos um jogo para criar o pedido."));
+        }
+
         var order = new Order(userId);
 
         foreach (var gameId in dto.GameIds)
         {
+            var gameResult = await gameRepository.GetByIdAsync(gameId);
+            if (gameResult.IsFailure)
             {
-                var game = await _gameRepository.GetByIdAsync(gameId) ??
-                    throw new Exception($"Jogo com ID {gameId} não encontrado.");
+                return Result<OrderDto>.Failure(gameResult.Error!);
+            }
 
-                var activePromotions = await _promotionRepository.GetActivePromotionsByGameIdAsync(gameId);
-                var bestPromotion = activePromotions.OrderByDescending(p => p.DiscountPercentage).FirstOrDefault();
+            var activePromotionsResult = await promotionRepository.GetActivePromotionsByGameIdAsync(gameId);
+            if (activePromotionsResult.IsFailure)
+            {
+                return Result<OrderDto>.Failure(activePromotionsResult.Error!);
+            }
 
-                decimal priceAtPurchase = game.Price;
+            var bestPromotion = activePromotionsResult.Value.OrderByDescending(p => p.DiscountPercentage).FirstOrDefault();
+            decimal priceAtPurchase = gameResult.Value.Price;
 
-                if (bestPromotion != null)
-                {
-                    priceAtPurchase -= bestPromotion.CalculateDiscountAmount(game.Price);
-                }
+            if (bestPromotion != null)
+            {
+                priceAtPurchase -= bestPromotion.CalculateDiscountAmount(gameResult.Value.Price);
+            }
 
-                order.AddItem(gameId, priceAtPurchase);
+            var addItemResult = order.AddItem(gameId, priceAtPurchase);
+            if (addItemResult.IsFailure)
+            {
+                return Result<OrderDto>.Failure(addItemResult.Error!);
             }
         }
 
-        await _orderRepository.AddAsync(order);
-        return MapToDto(order);
-    }
-
-    public async Task<OrderDto> GetOrderByIdAsync(Guid orderId)
-    {
-        var order = await _orderRepository.GetByIdAsync(orderId);
-        if (order == null)
+        var addResult = await orderRepository.AddAsync(order);
+        if (addResult.IsFailure)
         {
-            throw new Exception($"Pedido com ID {orderId} não encontrado.");
+            return Result<OrderDto>.Failure(addResult.Error!);
         }
-        return MapToDto(order);
+
+        var commitResult = await unitOfWork.CommitAsync();
+        return commitResult.IsFailure
+            ? Result<OrderDto>.Failure(commitResult.Error!)
+            : Result<OrderDto>.Success(MapToDto(order));
     }
 
-    public async Task<IEnumerable<OrderDto>> GetUserOrdersAsync(Guid userId)
+    public async Task<Result<OrderDto>> GetOrderByIdAsync(Guid orderId)
     {
-        var orders = await _orderRepository.GetByUserIdAsync(userId);
-        return orders.Select(MapToDto);
+        var orderResult = await orderRepository.GetByIdAsync(orderId);
+        return orderResult.IsFailure
+            ? Result<OrderDto>.Failure(orderResult.Error!)
+            : Result<OrderDto>.Success(MapToDto(orderResult.Value));
+    }
+
+    public async Task<Result<IEnumerable<OrderDto>>> GetUserOrdersAsync(Guid userId)
+    {
+        var ordersResult = await orderRepository.GetByUserIdAsync(userId);
+        return ordersResult.IsFailure
+            ? Result<IEnumerable<OrderDto>>.Failure(ordersResult.Error!)
+            : Result<IEnumerable<OrderDto>>.Success(ordersResult.Value.Select(MapToDto));
     }
 
     private static OrderDto MapToDto(Order order)

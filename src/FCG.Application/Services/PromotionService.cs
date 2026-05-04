@@ -1,45 +1,48 @@
-﻿using FCG.Application.DTOs;
+using FCG.Application.DTOs;
 using FCG.Application.Interfaces;
+using FCG.Application.Settings;
+using FCG.Domain.Common;
 using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 
 namespace FCG.Application.Services;
 
-public class PromotionService : IPromotionService
+public class PromotionService(
+    IPromotionRepository promotionRepository,
+    IGameRepository gameRepository,
+    IUnitOfWork unitOfWork,
+    PaginationSettings paginationSettings) : IPromotionService
 {
-    private readonly IPromotionRepository _promotionRepository;
-    private readonly IGameRepository _gameRepository;
+    private readonly int _pageSize = paginationSettings.PageSize;
 
-    public PromotionService(IPromotionRepository promotionRepository, IGameRepository gameRepository)
+    public async Task<Result<PagedResult<PromotionDto>>> GetAllActiveAsync(int page)
     {
-        _promotionRepository = promotionRepository;
-        _gameRepository = gameRepository;
+        if (page < 1)
+        {
+            return Result<PagedResult<PromotionDto>>.Failure(Error.InvalidRequest("Pagination.InvalidPage", "Pagina deve ser maior ou igual a 1."));
+        }
+
+        var promotionsResult = await promotionRepository.GetAllActiveAsync(new PaginationParameters(page, _pageSize));
+        if (promotionsResult.IsFailure)
+        {
+            return Result<PagedResult<PromotionDto>>.Failure(promotionsResult.Error!);
+        }
+
+        var promotions = promotionsResult.Value;
+        return Result<PagedResult<PromotionDto>>.Success(new PagedResult<PromotionDto>(
+            promotions.Items.Select(MapToDto).ToArray(),
+            promotions.Page,
+            promotions.PageSize,
+            promotions.TotalCount));
     }
 
-    public async Task<IEnumerable<PromotionDto>> GetAllActiveAsync()
+    public async Task<Result<PromotionDto>> CreateAsync(CreatePromotionDto dto)
     {
-        var promotions = await _promotionRepository.GetAllAsync();
-        var now = DateTime.UtcNow;
-
-        return promotions
-            .Where(p => p.IsActive && p.StartDate <= now && p.EndDate >= now)
-            .Select(p => new PromotionDto(
-                p.Id,
-                p.Name,
-                p.GameId,
-                p.Game.Title,
-                p.DiscountPercentage,
-                p.StartDate,
-                p.EndDate,
-                p.IsActive
-            ));
-    }
-
-    public async Task CreateAsync(CreatePromotionDto dto)
-    {
-        var game = await _gameRepository.GetByIdAsync(dto.GameId);
-        if (game == null)
-            throw new Exception("Jogo não encontrado.");
+        var gameResult = await gameRepository.GetByIdAsync(dto.GameId);
+        if (gameResult.IsFailure)
+        {
+            return Result<PromotionDto>.Failure(gameResult.Error!);
+        }
 
         var promotion = new Promotion(
             dto.Name,
@@ -49,16 +52,47 @@ public class PromotionService : IPromotionService
             dto.EndDate
         );
 
-        await _promotionRepository.AddAsync(promotion);
+        var addResult = await promotionRepository.AddAsync(promotion);
+        if (addResult.IsFailure)
+        {
+            return Result<PromotionDto>.Failure(addResult.Error!);
+        }
+
+        var commitResult = await unitOfWork.CommitAsync();
+        return commitResult.IsFailure
+            ? Result<PromotionDto>.Failure(commitResult.Error!)
+            : Result<PromotionDto>.Success(MapToDto(promotion, gameResult.Value.Title));
     }
 
-    public async Task DeactivateAsync(Guid id)
+    public async Task<Result> DeactivateAsync(Guid id)
     {
-        var promotion = await _promotionRepository.GetByIdAsync(id);
-        if (promotion == null)
-            throw new Exception("Promoção não encontrada.");
+        var promotionResult = await promotionRepository.GetByIdAsync(id);
+        if (promotionResult.IsFailure)
+        {
+            return Result.Failure(promotionResult.Error!);
+        }
 
-        promotion.Deactivate();
-        await _promotionRepository.UpdateAsync(promotion);
+        promotionResult.Value.Deactivate();
+        var updateResult = await promotionRepository.UpdateAsync(promotionResult.Value);
+        return updateResult.IsFailure ? updateResult : await unitOfWork.CommitAsync();
+    }
+
+    private static PromotionDto MapToDto(Promotion promotion)
+    {
+        return MapToDto(promotion, promotion.Game.Title);
+    }
+
+    private static PromotionDto MapToDto(Promotion promotion, string gameTitle)
+    {
+        return new PromotionDto(
+            promotion.Id,
+            promotion.Name,
+            promotion.GameId,
+            gameTitle,
+            promotion.DiscountPercentage,
+            promotion.StartDate,
+            promotion.EndDate,
+            promotion.IsActive
+        );
     }
 }

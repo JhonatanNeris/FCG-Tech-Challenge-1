@@ -1,52 +1,90 @@
-﻿using FCG.Application.DTOs;
+using FCG.Application.DTOs;
 using FCG.Application.Interfaces;
+using FCG.Application.Settings;
+using FCG.Domain.Common;
 using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 
 namespace FCG.Application.Services;
 
-public class GameService : IGameService
+public class GameService(
+    IGameRepository gameRep,
+    IUserRepository userRep,
+    IUnitOfWork unitOfWork,
+    PaginationSettings paginationSettings) : IGameService
 {
-    private readonly IGameRepository _gameRep;
-    private readonly IUserRepository _userRep;
+    private readonly int _pageSize = paginationSettings.PageSize;
 
-    public GameService(IGameRepository gameRep, IUserRepository userRep)
-    {
-        _gameRep = gameRep;
-        _userRep = userRep;
-    }
-
-    public async Task CreateAsync(CreateGameDto dto)
+    public async Task<Result<GameDto>> CreateAsync(CreateGameDto dto)
     {
         var game = new Game(dto.Title, dto.Description, dto.Price);
-        await _gameRep.AddAsync(game);
+        var addResult = await gameRep.AddAsync(game);
+
+        if (addResult.IsFailure)
+        {
+            return Result<GameDto>.Failure(addResult.Error!);
+        }
+
+        var commitResult = await unitOfWork.CommitAsync();
+        return commitResult.IsFailure
+            ? Result<GameDto>.Failure(commitResult.Error!)
+            : Result<GameDto>.Success(MapToGameDto(game));
     }
 
-    public async Task<IEnumerable<GameDto>> GetAllAsync()
+    public async Task<Result<PagedResult<GameDto>>> GetAllAsync(int page)
     {
-        var games = await _gameRep.GetAllAsync();
-        return games.Select(MapToGameDto);
+        if (page < 1)
+        {
+            return Result<PagedResult<GameDto>>.Failure(Error.InvalidRequest("Pagination.InvalidPage", "Pagina deve ser maior ou igual a 1."));
+        }
+
+        var gamesResult = await gameRep.GetAllAsync(new PaginationParameters(page, _pageSize));
+        if (gamesResult.IsFailure)
+        {
+            return Result<PagedResult<GameDto>>.Failure(gamesResult.Error!);
+        }
+
+        var games = gamesResult.Value;
+        return Result<PagedResult<GameDto>>.Success(new PagedResult<GameDto>(
+            games.Items.Select(MapToGameDto).ToArray(),
+            games.Page,
+            games.PageSize,
+            games.TotalCount));
     }
 
-    public async Task<GameDto> GetByIdAsync(Guid id)
+    public async Task<Result<GameDto>> GetByIdAsync(Guid id)
     {
-        var game = await _gameRep.GetByIdAsync(id) ?? throw new Exception("Jogo não encontrado.");
-        return MapToGameDto(game);
+        var gameResult = await gameRep.GetByIdAsync(id);
+        return gameResult.IsFailure
+            ? Result<GameDto>.Failure(gameResult.Error!)
+            : Result<GameDto>.Success(MapToGameDto(gameResult.Value));
     }
 
-    public async Task AddToLibraryAsync(Guid userId, Guid gameId)
+    public async Task<Result> AddToLibraryAsync(Guid userId, Guid gameId)
     {
-        var user = await _userRep.GetByIdAsync(userId) ?? throw new Exception("Usuário não encontrado.");
-        var game = await _gameRep.GetByIdAsync(gameId) ?? throw new Exception("Jogo não encontrado.");
+        var userResult = await userRep.GetByIdAsync(userId);
+        if (userResult.IsFailure)
+        {
+            return Result.Failure(userResult.Error!);
+        }
 
-        user.AddGameToLibrary(game);
-        await _userRep.UpdateAsync(user);
+        var gameResult = await gameRep.GetByIdAsync(gameId);
+        if (gameResult.IsFailure)
+        {
+            return Result.Failure(gameResult.Error!);
+        }
+
+        userResult.Value.AddGameToLibrary(gameResult.Value);
+        var updateResult = await userRep.UpdateAsync(userResult.Value);
+        return updateResult.IsFailure ? updateResult : await unitOfWork.CommitAsync();
     }
 
-    public async Task<IEnumerable<GameDto>> GetLibraryAsync(Guid userId)
+    public async Task<Result<IEnumerable<GameDto>>> GetLibraryAsync(Guid userId)
     {
-        var user = await _userRep.GetByIdAsync(userId) ?? throw new Exception("Usuário não encontrado.");
-        return user.LibraryItems.Select(ug => MapToGameDto(ug.Game));
+        var userResult = await userRep.GetByIdAsync(userId);
+        return userResult.IsFailure
+            ? Result<IEnumerable<GameDto>>.Failure(userResult.Error!)
+            : Result<IEnumerable<GameDto>>.Success(userResult.Value.LibraryItems.Select(ug => MapToGameDto(ug.Game)));
     }
 
     private static GameDto MapToGameDto(Game g)

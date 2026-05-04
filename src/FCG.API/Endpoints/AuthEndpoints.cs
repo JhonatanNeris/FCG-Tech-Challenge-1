@@ -1,4 +1,5 @@
-﻿using FCG.Application.DTOs;
+using FCG.API.Extensions;
+using FCG.Application.DTOs;
 using FCG.Application.Interfaces;
 using FluentValidation;
 
@@ -8,29 +9,30 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/auth").WithTags("Autenticação");
+        var group = app.MapGroup("/api/auth").WithTags("Autenticacao");
 
         group.MapPost("/register", async (RegisterUserDto dto, IAuthService service, IValidator<RegisterUserDto> validator) =>
         {
             var validation = await validator.ValidateAsync(dto);
             if (!validation.IsValid)
             {
-                var errors = validation.Errors
-                        .GroupBy(e => e.PropertyName)
-                        .ToDictionary(
-                            g => g.Key,
-                            g => g.Select(x => x.ErrorMessage).ToArray()
-                        ); return Results.ValidationProblem(errors);
+                return validation.ToBadRequestValidationProblem();
             }
 
-            await service.RegisterAsync(dto);
-            return Results.Ok(new { message = "Usuário registrado com sucesso." });
+            var result = await service.RegisterAsync(dto);
+            return result.ToHttpResult(() => Results.Created("/api/auth/register", new { message = "Usuario registrado com sucesso." }));
         });
 
-        group.MapPost("/login", async (LoginDto dto, IAuthService service) =>
+        group.MapPost("/login", async (LoginDto dto, IAuthService service, IValidator<LoginDto> validator) =>
         {
-            var tokenDto = await service.LoginAsync(dto);
-            return Results.Ok(tokenDto);
+            var validation = await validator.ValidateAsync(dto);
+            if (!validation.IsValid)
+            {
+                return validation.ToBadRequestValidationProblem();
+            }
+
+            var result = await service.LoginAsync(dto);
+            return result.ToHttpResult(Results.Ok);
         });
     }
 }

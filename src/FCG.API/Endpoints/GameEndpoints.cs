@@ -1,7 +1,10 @@
-﻿using FCG.Application.DTOs;
+using FCG.API.Extensions;
+using FCG.Application.DTOs;
 using FCG.Application.Interfaces;
-using System.Security.Claims;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FCG.API.Endpoints;
 
@@ -9,36 +12,39 @@ public static class GameEndpoints
 {
     public static void MapGameEndpoints(this IEndpointRouteBuilder app)
     {
-        // CRUD de Games (Catálogo)
-        var group = app.MapGroup("/api/games").WithTags("Jogos (Catálogo)").RequireAuthorization();
+        var group = app.MapGroup("/api/games").WithTags("Jogos (Catalogo)").RequireAuthorization();
 
-        group.MapPost("/", [Authorize(Roles = "Admin")] async (CreateGameDto dto, IGameService service) =>
+        group.MapPost("/", [Authorize(Roles = "Admin")] async (CreateGameDto dto, IGameService service, IValidator<CreateGameDto> validator) =>
         {
-            await service.CreateAsync(dto);
-            return Results.Ok(new { message = "Jogo criado com sucesso no catálogo." });
+            var validation = await validator.ValidateAsync(dto);
+            if (!validation.IsValid)
+            {
+                return validation.ToBadRequestValidationProblem();
+            }
+
+            var result = await service.CreateAsync(dto);
+            return result.ToHttpResult(game => Results.Created($"/api/games/{game.Id}", game));
         });
 
-        group.MapGet("/", async (IGameService service) =>
+        group.MapGet("/", async (IGameService service, [FromQuery] int page = 1) =>
         {
-            var games = await service.GetAllAsync();
-            return Results.Ok(games);
-        }).AllowAnonymous(); // Listagem pública de catálogo
+            var result = await service.GetAllAsync(page);
+            return result.ToHttpResult(Results.Ok);
+        }).AllowAnonymous();
 
         group.MapGet("/{id:guid}", async (Guid id, IGameService service) =>
         {
-            var game = await service.GetByIdAsync(id);
-            return game is not null ? Results.Ok(game) : Results.NotFound(new { message = "Jogo não encontrado." });
-        }).AllowAnonymous(); // Detalhes públicos de catálogo
+            var result = await service.GetByIdAsync(id);
+            return result.ToHttpResult(Results.Ok);
+        }).AllowAnonymous();
 
-        // Gerenciamento da Biblioteca do Usuário autenticado
-        var library = app.MapGroup("/api/library").WithTags("Biblioteca do Usuário").RequireAuthorization();
+        var library = app.MapGroup("/api/library").WithTags("Biblioteca do Usuario").RequireAuthorization();
 
         library.MapGet("/", async (IGameService service, ClaimsPrincipal user) =>
         {
             var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var games = await service.GetLibraryAsync(userId);
-            return Results.Ok(games);
+            var result = await service.GetLibraryAsync(userId);
+            return result.ToHttpResult(Results.Ok);
         });
     }
 }
-

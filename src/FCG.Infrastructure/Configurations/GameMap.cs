@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FCG.Infrastructure.Configurations;
 
-public class GameConfiguration : IEntityTypeConfiguration<Game>
+public class GameMap() : IEntityTypeConfiguration<Game>
 {
     public void Configure(EntityTypeBuilder<Game> builder)
     {

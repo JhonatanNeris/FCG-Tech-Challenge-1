@@ -1,42 +1,43 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 using FCG.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FCG.Infrastructure.Repositories;
 
-public class UserRepository : IUserRepository
+public class UserRepository(AppDbContext context) : IUserRepository
 {
-    private readonly AppDbContext _context;
-
-    public UserRepository(AppDbContext context)
+    public async Task<Result> AddAsync(User user)
     {
-        _context = context;
+        await context.Users.AddAsync(user);
+        return Result.Success();
     }
 
-    public async Task AddAsync(User user)
+    public async Task<Result<User>> GetByEmailAsync(string email)
     {
-        await _context.Users.AddAsync(user);
-        await _context.SaveChangesAsync();
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+        return user is null
+            ? Result<User>.Failure(Error.NotFound("Users.NotFoundByEmail", "Usuario nao encontrado."))
+            : Result<User>.Success(user);
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
+    public async Task<Result<User>> GetByIdAsync(Guid id)
     {
-        return await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == email);
-    }
-
-    public async Task<User?> GetByIdAsync(Guid id)
-    {
-        return await _context.Users
+        var user = await context.Users
             .Include(u => u.LibraryItems)
             .ThenInclude(ug => ug.Game)
             .FirstOrDefaultAsync(u => u.Id == id);
+
+        return user is null
+            ? Result<User>.Failure(Error.NotFound("Users.NotFound", "Usuario nao encontrado."))
+            : Result<User>.Success(user);
     }
 
-    public async Task UpdateAsync(User user)
+    public async Task<Result> UpdateAsync(User user)
     {
-        _context.Users.Update(user);
-        await _context.SaveChangesAsync();
+        context.Users.Update(user);
+        return Result.Success();
     }
 }

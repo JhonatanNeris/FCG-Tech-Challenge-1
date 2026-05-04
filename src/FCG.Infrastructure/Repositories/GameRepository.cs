@@ -1,44 +1,44 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 using FCG.Infrastructure.Data;
+using FCG.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FCG.Infrastructure.Repositories;
 
-public class GameRepository : IGameRepository
+public class GameRepository(AppDbContext context) : IGameRepository
 {
-    private readonly AppDbContext _context;
-
-    public GameRepository(AppDbContext context)
+    public async Task<Result> AddAsync(Game game)
     {
-        _context = context;
+        await context.Games.AddAsync(game);
+        return Result.Success();
     }
 
-    public async Task AddAsync(Game game)
+    public async Task<Result<PagedResult<Game>>> GetAllAsync(PaginationParameters pagination)
     {
-        await _context.Games.AddAsync(game);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<IEnumerable<Game>> GetAllAsync()
-    {
-        return await _context.Games
+        var query = context.Games
             .Include(g => g.Promotions)
             .Where(g => g.IsActive)
-            .ToListAsync();
+            .OrderBy(g => g.Title);
+
+        return Result<PagedResult<Game>>.Success(await query.ToPagedResultAsync(pagination));
     }
 
-    public async Task<Game?> GetByIdAsync(Guid id)
+    public async Task<Result<Game>> GetByIdAsync(Guid id)
     {
-        return await _context.Games
+        var game = await context.Games
             .Include(g => g.Promotions)
             .FirstOrDefaultAsync(g => g.Id == id);
+
+        return game is null
+            ? Result<Game>.Failure(Error.NotFound("Games.NotFound", "Jogo nao encontrado."))
+            : Result<Game>.Success(game);
     }
 
-    public async Task UpdateAsync(Game game)
+    public async Task<Result> UpdateAsync(Game game)
     {
-        _context.Games.Update(game);
-        await _context.SaveChangesAsync();
+        context.Games.Update(game);
+        return Result.Success();
     }
 }
-

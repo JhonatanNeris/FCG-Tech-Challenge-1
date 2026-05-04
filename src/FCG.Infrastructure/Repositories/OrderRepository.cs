@@ -1,47 +1,47 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 using FCG.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FCG.Infrastructure.Repositories;
 
-public class OrderRepository : IOrderRepository
+public class OrderRepository(AppDbContext context) : IOrderRepository
 {
-    private readonly AppDbContext _context;
-
-    public OrderRepository(AppDbContext context)
+    public async Task<Result> AddAsync(Order order)
     {
-        _context = context;
+        await context.Orders.AddAsync(order);
+        return Result.Success();
     }
 
-    public async Task AddAsync(Order order)
+    public async Task<Result<Order>> GetByIdAsync(Guid id)
     {
-        await _context.Orders.AddAsync(order);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<Order?> GetByIdAsync(Guid id)
-    {
-        return await _context.Orders
-            .Include(o => o.Items) // Incluir os itens do pedido
-                .ThenInclude(oi => oi.Game) // Incluir os detalhes do jogo para cada item
-            .Include(o => o.User) // Incluir os detalhes do usuário
+        var order = await context.Orders
+            .Include(o => o.Items)
+                .ThenInclude(oi => oi.Game)
+            .Include(o => o.User)
             .FirstOrDefaultAsync(o => o.Id == id);
+
+        return order is null
+            ? Result<Order>.Failure(Error.NotFound("Orders.NotFound", $"Pedido com ID {id} nao encontrado."))
+            : Result<Order>.Success(order);
     }
 
-    public async Task<IEnumerable<Order>> GetByUserIdAsync(Guid userId)
+    public async Task<Result<IEnumerable<Order>>> GetByUserIdAsync(Guid userId)
     {
-        return await _context.Orders
+        var orders = await context.Orders
             .Include(o => o.Items)
                 .ThenInclude(i => i.Game)
             .Where(o => o.UserId == userId)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
+
+        return Result<IEnumerable<Order>>.Success(orders);
     }
 
-    public async Task UpdateAsync(Order order)
+    public async Task<Result> UpdateAsync(Order order)
     {
-        _context.Orders.Update(order);
-        await _context.SaveChangesAsync();
+        context.Orders.Update(order);
+        return Result.Success();
     }
 }

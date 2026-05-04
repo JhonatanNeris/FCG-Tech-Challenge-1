@@ -1,12 +1,14 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 
 namespace FCG.Domain.Interfaces;
 
 public interface IPromotionRepository
 {
-    Task<Promotion?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Promotion>> GetAllAsync();
-    Task<IEnumerable<Promotion>> GetActivePromotionsByGameIdAsync(Guid gameId);
-    Task AddAsync(Promotion promotion);
-    Task UpdateAsync(Promotion promotion);
+    Task<Result<Promotion>> GetByIdAsync(Guid id);
+    Task<Result<PagedResult<Promotion>>> GetAllAsync(PaginationParameters pagination);
+    Task<Result<PagedResult<Promotion>>> GetAllActiveAsync(PaginationParameters pagination);
+    Task<Result<IEnumerable<Promotion>>> GetActivePromotionsByGameIdAsync(Guid gameId);
+    Task<Result> AddAsync(Promotion promotion);
+    Task<Result> UpdateAsync(Promotion promotion);
 }

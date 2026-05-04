@@ -22,6 +22,11 @@ var secretKey = builder.Configuration["chave_secreta"]
     ?? throw new InvalidOperationException("A configuracao 'chave_secreta' e obrigatoria.");
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("A configuracao 'Jwt:Key' e obrigatoria.");
+var pageSize = builder.Configuration.GetValue<int?>("Pagination:PageSize") ?? 30;
+if (pageSize < 1)
+{
+    throw new InvalidOperationException("A configuracao 'Pagination:PageSize' deve ser maior ou igual a 1.");
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString, x => x.MigrationsAssembly("FCG.Infrastructure"))
@@ -32,9 +37,11 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddSingleton(new AuthSettings(secretKey));
 builder.Services.AddSingleton(new JwtSettings(jwtKey));
+builder.Services.AddSingleton(new PaginationSettings(pageSize));
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
@@ -101,6 +108,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         context.Database.Migrate();
+        await DatabaseSeeder.SeedAsync(context, secretKey);
         Console.WriteLine("Banco de dados atualizado com sucesso!");
     }
     catch (Exception ex)
@@ -120,6 +128,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+app.UseMiddleware<UserLoggingScopeMiddleware>();
 app.UseAuthorization();
 
 app.MapAuthEndpoints();
