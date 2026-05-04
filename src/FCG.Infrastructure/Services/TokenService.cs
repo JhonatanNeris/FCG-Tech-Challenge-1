@@ -1,10 +1,10 @@
 ﻿using FCG.Application.Interfaces;
+using FCG.Application.Settings;
 using FCG.Domain.Entities;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 
 namespace FCG.Infrastructure.Services;
 
@@ -12,9 +12,9 @@ public class TokenService : ITokenService
 {
     private readonly string _key;
 
-    public TokenService(IConfiguration config)
+    public TokenService(JwtSettings jwtSettings)
     {
-        _key = config["Jwt:Key"] ?? throw new Exception("Chave JWT não configurada.");
+        _key = jwtSettings.Key;
     }
 
     public string GenerateToken(User user)
