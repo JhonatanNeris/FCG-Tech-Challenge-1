@@ -50,10 +50,10 @@ Recentemente ocorreram mudanças arquiteturais significativas:
 3. **Atualize as credenciais no `appsettings.json` (no projeto FCG.API):**
    Verifique a connection string `"DefaultConnection"` e tenha certeza de que o SQL Server está acessível.
    ```
-   "DefaultConnection": "Server=localhost,1433;Database=FCGDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;"
+   "DefaultConnection": "Server=localhost,1433;Database=FCGDb;User Id=sa;Password=ArquiteturaFiap.NET@2026;TrustServerCertificate=True;"
    ```
-   *Altere `YourStrong!Passw0rd` se desejar outra senha.*
-   > **Nota:** O contêiner utiliza a imagem oficial `mcr.microsoft.com/mssql/server:2022-latest`. A senha padrão (`YourStrong!Passw0rd`) deve atender aos requisitos de complexidade do SQL Server.
+   *Altere `ArquiteturaFiap.NET@2026` se desejar outra senha.*
+   > **Nota:** O contêiner utiliza a imagem oficial `mcr.microsoft.com/mssql/server:2022-latest`. A senha padrão (`ArquiteturaFiap.NET@2026`) deve atender aos requisitos de complexidade do SQL Server.
    
 4. **Aplicar Migrations:**
 
