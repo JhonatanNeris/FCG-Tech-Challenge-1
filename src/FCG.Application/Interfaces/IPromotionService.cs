@@ -1,10 +1,11 @@
-﻿using FCG.Application.DTOs;
+using FCG.Application.DTOs;
+using FCG.Domain.Common;
 
 namespace FCG.Application.Interfaces;
 
 public interface IPromotionService
 {
-    Task<IEnumerable<PromotionDto>> GetAllActiveAsync();
-    Task CreateAsync(CreatePromotionDto dto);
-    Task DeactivateAsync(Guid id);
+    Task<Result<PagedResult<PromotionDto>>> GetAllActiveAsync(int page);
+    Task<Result<PromotionDto>> CreateAsync(CreatePromotionDto dto);
+    Task<Result> DeactivateAsync(Guid id);
 }

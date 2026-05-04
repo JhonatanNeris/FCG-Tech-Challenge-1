@@ -1,0 +1,56 @@
+using FCG.API.Endpoints;
+using FCG.API.Middlewares;
+using FCG.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace FCG.API.Extensions;
+
+public static class WebApplicationExtensions
+{
+    public static async Task ApplyDatabaseMigrationsAsync(this WebApplication app, string secretKey)
+    {
+        using var scope = app.Services.CreateScope();
+        var services = scope.ServiceProvider;
+
+        try
+        {
+            var context = services.GetRequiredService<AppDbContext>();
+            context.Database.Migrate();
+            await DatabaseSeeder.SeedAsync(context, secretKey);
+            Console.WriteLine("Banco de dados atualizado com sucesso!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ocorreu um erro ao aplicar as migracoes: {ex.Message}");
+        }
+    }
+
+    public static WebApplication UseApiPipeline(this WebApplication app)
+    {
+        app.UseExceptionHandler();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+
+        app.UseAuthentication();
+        app.UseMiddleware<UserLoggingScopeMiddleware>();
+        app.UseAuthorization();
+
+        return app;
+    }
+
+    public static WebApplication MapApiEndpoints(this WebApplication app)
+    {
+        app.MapAuthEndpoints();
+        app.MapGameEndpoints();
+        app.MapPromotionEndpoints();
+        app.MapOrderEndpoints();
+
+        return app;
+    }
+}

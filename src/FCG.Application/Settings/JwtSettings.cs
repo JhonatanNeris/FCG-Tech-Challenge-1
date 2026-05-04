@@ -1,3 +1,6 @@
 namespace FCG.Application.Settings;
 
-public sealed record JwtSettings(string Key);
+public sealed class JwtSettings
+{
+    public string Key { get; set; } = string.Empty;
+}

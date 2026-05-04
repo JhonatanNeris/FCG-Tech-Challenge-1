@@ -1,42 +1,24 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 using FCG.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FCG.Infrastructure.Repositories;
 
-public class UserRepository : IUserRepository
+public class UserRepository(AppDbContext context)
+    : Repository<User>(context, Errors.Users.NotFound), IUserRepository
 {
-    private readonly AppDbContext _context;
+    protected override IQueryable<User> Query => Context.Users
+        .Include(user => user.LibraryItems)
+        .ThenInclude(libraryItem => libraryItem.Game);
 
-    public UserRepository(AppDbContext context)
+    public async Task<Result<User>> GetByEmailAsync(string email)
     {
-        _context = context;
-    }
+        var user = await Context.Users.FirstOrDefaultAsync(user => user.Email == email);
 
-    public async Task AddAsync(User user)
-    {
-        await _context.Users.AddAsync(user);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<User?> GetByEmailAsync(string email)
-    {
-        return await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == email);
-    }
-
-    public async Task<User?> GetByIdAsync(Guid id)
-    {
-        return await _context.Users
-            .Include(u => u.LibraryItems)
-            .ThenInclude(ug => ug.Game)
-            .FirstOrDefaultAsync(u => u.Id == id);
-    }
-
-    public async Task UpdateAsync(User user)
-    {
-        _context.Users.Update(user);
-        await _context.SaveChangesAsync();
+        return user is null
+            ? Result<User>.Failure(Errors.Users.NotFoundByEmail)
+            : Result<User>.Success(user);
     }
 }

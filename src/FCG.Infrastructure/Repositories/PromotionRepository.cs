@@ -1,50 +1,44 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 using FCG.Infrastructure.Data;
+using FCG.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FCG.Infrastructure.Repositories;
 
-public class PromotionRepository : IPromotionRepository
+public class PromotionRepository(AppDbContext context)
+    : Repository<Promotion>(context, Errors.Promotions.NotFound), IPromotionRepository
 {
-    private readonly AppDbContext _context;
+    protected override IQueryable<Promotion> Query => Context.Promotions.Include(promotion => promotion.Game);
 
-    public PromotionRepository(AppDbContext context)
+    public async Task<Result<PagedResult<Promotion>>> GetAllAsync(PaginationParameters pagination)
     {
-        _context = context;
+        var query = Context.Promotions
+            .Include(promotion => promotion.Game)
+            .OrderBy(promotion => promotion.Name);
+
+        return Result<PagedResult<Promotion>>.Success(await query.ToPagedResultAsync(pagination));
     }
 
-    public async Task<Promotion?> GetByIdAsync(Guid id)
-    {
-        return await _context.Promotions
-            .Include(p => p.Game)
-            .FirstOrDefaultAsync(p => p.Id == id);
-    }
-
-    public async Task<IEnumerable<Promotion>> GetAllAsync()
-    {
-        return await _context.Promotions
-            .Include(p => p.Game)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<Promotion>> GetActivePromotionsByGameIdAsync(Guid gameId)
+    public async Task<Result<PagedResult<Promotion>>> GetAllActiveAsync(PaginationParameters pagination)
     {
         var now = DateTime.UtcNow;
-        return await _context.Promotions
-            .Where(p => p.GameId == gameId && p.IsActive && p.StartDate <= now && p.EndDate >= now)
+        var query = Context.Promotions
+            .Include(promotion => promotion.Game)
+            .Where(promotion => promotion.IsActive && promotion.StartDate <= now && promotion.EndDate >= now)
+            .OrderBy(promotion => promotion.Name);
+
+        return Result<PagedResult<Promotion>>.Success(await query.ToPagedResultAsync(pagination));
+    }
+
+    public async Task<Result<IEnumerable<Promotion>>> GetActivePromotionsByGameIdAsync(Guid gameId)
+    {
+        var now = DateTime.UtcNow;
+        var promotions = await Context.Promotions
+            .Where(promotion => promotion.GameId == gameId && promotion.IsActive && promotion.StartDate <= now && promotion.EndDate >= now)
             .ToListAsync();
-    }
 
-    public async Task AddAsync(Promotion promotion)
-    {
-        await _context.Promotions.AddAsync(promotion);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task UpdateAsync(Promotion promotion)
-    {
-        _context.Promotions.Update(promotion);
-        await _context.SaveChangesAsync();
+        return Result<IEnumerable<Promotion>>.Success(promotions);
     }
 }

@@ -102,3 +102,15 @@ Para facilitar o desenvolvimento, você pode rodar o SQL Server em um contêiner
 
 Para os endpoints protegidos, é necessário realizar o login ou registro para obter um token JWT.
 No Swagger, utilize o botão "Authorize" no topo da página e insira seu token no formato: `Bearer <SEU_TOKEN>`.
+
+### Usuario administrador seedado
+
+A aplicacao cria automaticamente, no warmup apos aplicar as migrations, o usuario administrador principal:
+
+```text
+Email: fgc_admin@admin.com
+Senha: admin
+Role: Admin
+```
+
+Esse usuario e o admin da aplicacao. O endpoint de cadastro publico nao cria administradores; todos os usuarios cadastrados pela API recebem sempre a role `User`.

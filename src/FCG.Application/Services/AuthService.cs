@@ -1,71 +1,47 @@
-﻿using FCG.Application.DTOs;
+using FCG.Application.DTOs;
 using FCG.Application.Interfaces;
+using FCG.Application.Security;
 using FCG.Application.Settings;
+using FCG.Domain.Common;
 using FCG.Domain.Entities;
 using FCG.Domain.Enums;
 using FCG.Domain.Interfaces;
-using Isopoh.Cryptography.Argon2;
+using Microsoft.Extensions.Options;
 
 namespace FCG.Application.Services;
 
-public class AuthService : IAuthService
+public sealed class AuthService(
+    IUserRepository userRepository,
+    ITokenService tokenService,
+    IUnitOfWork unitOfWork,
+    IOptions<AuthSettings> authSettings) : IAuthService
 {
-    private const int Argon2MemoryCost = 65536;
-    private const int Argon2Iterations = 3;
-    private const int Argon2Threads = 4;
-    private const int Argon2HashLength = 32;
+    private readonly string _secretKey = authSettings.Value.SecretKey;
 
-    private readonly IUserRepository _userRep;
-    private readonly ITokenService _tokenService;
-    private readonly string _secretKey;
-
-    public AuthService(IUserRepository userRep, ITokenService tokenService, AuthSettings authSettings)
+    public async Task<Result<TokenDto>> LoginAsync(LoginDto dto)
     {
-        _userRep = userRep;
-        _tokenService = tokenService;
-        _secretKey = authSettings.SecretKey;
+        var userResult = await userRepository.GetByEmailAsync(dto.Email);
+        if (userResult.IsFailure || !PasswordHasher.VerifyPassword(dto.Password, userResult.Value.PasswordHash, _secretKey))
+        {
+            return Result<TokenDto>.Failure(Errors.Auth.InvalidCredentials);
+        }
+
+        return Result<TokenDto>.Success(new TokenDto(tokenService.GenerateToken(userResult.Value)));
     }
 
-    public async Task<TokenDto> LoginAsync(LoginDto dto)
+    public async Task<Result> RegisterAsync(RegisterUserDto dto)
     {
-        var user = await _userRep.GetByEmailAsync(dto.Email) ?? throw new Exception("Credenciais inválidas.");
-        if (!VerifyPassword(dto.Password, user.PasswordHash))
-            throw new Exception("Credenciais inválidas.");
+        var existingUser = await userRepository.GetByEmailAsync(dto.Email);
+        if (existingUser.IsSuccess)
+        {
+            return Result.Failure(Errors.Auth.RegisterFailed);
+        }
 
-        return new TokenDto(_tokenService.GenerateToken(user));
+        var passHash = PasswordHasher.HashPassword(dto.Password, _secretKey);
+        var user = new User(dto.Name, dto.Email, passHash, Role.User);
+
+        var addResult = await userRepository.AddAsync(user);
+        return addResult.IsFailure ? addResult : await unitOfWork.CommitAsync();
     }
 
-    public async Task RegisterAsync(RegisterUserDto dto)
-    {
-        if (await _userRep.GetByEmailAsync(dto.Email) != null)
-            throw new Exception("Email já está em uso.");
-
-        var passHash = HashPassword(dto.Password);
-
-        // Opcional: atribuir role. Por padrao daremos Admin para emails contendo 'admin'.
-        var role = dto.Email.ToLower().Contains("admin") ? Role.Admin : Role.User;
-        var user = new User(dto.Name, dto.Email, passHash, role);
-        await _userRep.AddAsync(user);
-    }
-
-    private string HashPassword(string password)
-    {
-        return Argon2.Hash(
-            ConcatPasswordWithSecret(password),
-            timeCost: Argon2Iterations,
-            memoryCost: Argon2MemoryCost,
-            parallelism: Argon2Threads,
-            type: Argon2Type.HybridAddressing,
-            hashLength: Argon2HashLength);
-    }
-
-    private bool VerifyPassword(string password, string passwordHash)
-    {
-        return Argon2.Verify(passwordHash, ConcatPasswordWithSecret(password));
-    }
-
-    private string ConcatPasswordWithSecret(string password)
-    {
-        return $"{password}{_secretKey}";
-    }
 }

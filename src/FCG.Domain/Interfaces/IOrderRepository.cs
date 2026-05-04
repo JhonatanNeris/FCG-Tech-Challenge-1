@@ -1,11 +1,9 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 
 namespace FCG.Domain.Interfaces;
 
-public interface IOrderRepository
+public interface IOrderRepository : IRepository<Order>
 {
-    Task<Order?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Order>> GetByUserIdAsync(Guid userId);
-    Task AddAsync(Order order);
-    Task UpdateAsync(Order order);
+    Task<Result<IEnumerable<Order>>> GetByUserIdAsync(Guid userId);
 }

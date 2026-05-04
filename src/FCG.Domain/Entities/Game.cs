@@ -1,26 +1,17 @@
-﻿namespace FCG.Domain.Entities;
+namespace FCG.Domain.Entities;
 
-public class Game
+public class Game(string title, string description, decimal price) : Entity
 {
-    public Guid Id { get; private set; }
-    public string Title { get; private set; } = string.Empty;
-    public string Description { get; private set; } = string.Empty;
-    public decimal Price { get; private set; }
-    public bool IsActive { get; private set; }
+    public string Title { get; private set; } = title;
+    public string Description { get; private set; } = description;
+    public decimal Price { get; private set; } = price;
+    public bool IsActive { get; private set; } = true;
 
-    //Relação
-    public ICollection<LibraryItem> LibraryItems { get; private set; } = new List<LibraryItem>();
-    public ICollection<Promotion> Promotions { get; private set; } = new List<Promotion>();
+    public ICollection<LibraryItem> LibraryItems { get; private set; } = [];
+    public ICollection<Promotion> Promotions { get; private set; } = [];
 
-    protected Game() { } // EF Core
-
-    public Game(string title, string description, decimal price)
+    protected Game() : this(string.Empty, string.Empty, 0)
     {
-        Id = Guid.NewGuid();
-        Title = title;
-        Description = description;
-        Price = price;
-        IsActive = true;
     }
 
     public void Update(string title, string description, decimal price)

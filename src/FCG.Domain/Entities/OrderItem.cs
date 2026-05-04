@@ -1,20 +1,13 @@
-﻿namespace FCG.Domain.Entities;
+namespace FCG.Domain.Entities;
 
-public class OrderItem
+public class OrderItem(Guid gameId, decimal priceAtPurchase) : Entity
 {
-    public Guid Id { get; set; }
     public Guid OrderId { get; set; }
-    public Guid GameId { get; set; }
-    public decimal PriceAtPurchase { get; set; }
-
-    // EF Core navigation properties
+    public Guid GameId { get; set; } = gameId;
+    public decimal PriceAtPurchase { get; set; } = priceAtPurchase;
     public Game Game { get; set; } = null!;
 
-    // Parameterless constructor for EF Core
-    public OrderItem(Guid gameId, decimal priceAtPurchase)
+    protected OrderItem() : this(Guid.Empty, 0)
     {
-        Id = Guid.NewGuid();
-        GameId = gameId;
-        PriceAtPurchase = priceAtPurchase;
     }
 }

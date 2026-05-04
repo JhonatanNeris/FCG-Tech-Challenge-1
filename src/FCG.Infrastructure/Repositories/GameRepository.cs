@@ -1,44 +1,24 @@
-﻿using FCG.Domain.Entities;
+using FCG.Domain.Common;
+using FCG.Domain.Entities;
 using FCG.Domain.Interfaces;
 using FCG.Infrastructure.Data;
+using FCG.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FCG.Infrastructure.Repositories;
 
-public class GameRepository : IGameRepository
+public class GameRepository(AppDbContext context)
+    : Repository<Game>(context, Errors.Games.NotFound), IGameRepository
 {
-    private readonly AppDbContext _context;
+    protected override IQueryable<Game> Query => Context.Games.Include(game => game.Promotions);
 
-    public GameRepository(AppDbContext context)
+    public async Task<Result<PagedResult<Game>>> GetAllAsync(PaginationParameters pagination)
     {
-        _context = context;
-    }
+        var query = Context.Games
+            .Include(game => game.Promotions)
+            .Where(game => game.IsActive)
+            .OrderBy(game => game.Title);
 
-    public async Task AddAsync(Game game)
-    {
-        await _context.Games.AddAsync(game);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<IEnumerable<Game>> GetAllAsync()
-    {
-        return await _context.Games
-            .Include(g => g.Promotions)
-            .Where(g => g.IsActive)
-            .ToListAsync();
-    }
-
-    public async Task<Game?> GetByIdAsync(Guid id)
-    {
-        return await _context.Games
-            .Include(g => g.Promotions)
-            .FirstOrDefaultAsync(g => g.Id == id);
-    }
-
-    public async Task UpdateAsync(Game game)
-    {
-        _context.Games.Update(game);
-        await _context.SaveChangesAsync();
+        return Result<PagedResult<Game>>.Success(await query.ToPagedResultAsync(pagination));
     }
 }
-

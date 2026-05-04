@@ -1,21 +1,16 @@
-﻿namespace FCG.Domain.Entities;
+namespace FCG.Domain.Entities;
 
-public class LibraryItem
+public class LibraryItem(Guid userId, Guid gameId) : Entity
 {
-    public Guid UserId { get; private set; }
+    public Guid UserId { get; private set; } = userId;
     public User User { get; private set; } = null!;
 
-    public Guid GameId { get; private set; }
+    public Guid GameId { get; private set; } = gameId;
     public Game Game { get; private set; } = null!;
 
-    public DateTime AcquiredAt { get; private set; }
+    public DateTime AcquiredAt { get; private set; } = DateTime.UtcNow;
 
-    protected LibraryItem() { } // EF Core
-
-    public LibraryItem(Guid userId, Guid gameId)
+    protected LibraryItem() : this(Guid.Empty, Guid.Empty)
     {
-        UserId = userId;
-        GameId = gameId;
-        AcquiredAt = DateTime.UtcNow;
     }
 }
