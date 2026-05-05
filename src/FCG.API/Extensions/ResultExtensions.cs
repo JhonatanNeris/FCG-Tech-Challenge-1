@@ -22,6 +22,7 @@ public static class ResultExtensions
             ErrorType.Validation => Results.UnprocessableEntity(new { error.Code, error.Message }),
             ErrorType.NotFound => Results.NotFound(new { error.Code, error.Message }),
             ErrorType.Unauthorized => Results.Unauthorized(),
+            ErrorType.Forbidden => Results.Forbid(),
             _ => Results.Problem(error.Message)
         };
     }

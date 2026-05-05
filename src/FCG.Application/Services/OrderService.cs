@@ -2,7 +2,6 @@ using FCG.Application.DTOs;
 using FCG.Application.Interfaces;
 using FCG.Domain.Common;
 using FCG.Domain.Entities;
-using FCG.Domain.Enums;
 using FCG.Domain.Interfaces;
 
 namespace FCG.Application.Services;
@@ -14,7 +13,7 @@ public sealed class OrderService(
     IPromotionRepository promotionRepository,
     IUnitOfWork unitOfWork) : IOrderService
 {
-    public async Task<Result> ApprovePaymentAsync(Guid orderId)
+    public async Task<Result> ApprovePaymentAsync(Guid orderId, Guid currentUserId, bool isAdmin)
     {
         var orderResult = await orderRepository.GetByIdAsync(orderId);
         if (orderResult.IsFailure)
@@ -23,9 +22,9 @@ public sealed class OrderService(
         }
 
         var order = orderResult.Value;
-        if (order.Status != OrderStatus.Pending)
+        if (!CanAccessOrder(order, currentUserId, isAdmin))
         {
-            return Result.Failure(Errors.Orders.NotPending(orderId));
+            return Result.Failure(Errors.Orders.AccessDenied);
         }
 
         var userResult = await userRepository.GetByIdAsync(order.UserId);
@@ -57,7 +56,7 @@ public sealed class OrderService(
 
     public async Task<Result<OrderDto>> CreateOrderAsync(Guid userId, CreateOrderDto dto)
     {
-        if (!dto.GameIds.Any())
+        if (dto.GameIds.Count == 0)
         {
             return Result<OrderDto>.Failure(Errors.Orders.EmptyGames);
         }
@@ -107,12 +106,17 @@ public sealed class OrderService(
             : Result<OrderDto>.Success(MapToDto(order));
     }
 
-    public async Task<Result<OrderDto>> GetOrderByIdAsync(Guid orderId)
+    public async Task<Result<OrderDto>> GetOrderByIdAsync(Guid orderId, Guid currentUserId, bool isAdmin)
     {
         var orderResult = await orderRepository.GetByIdAsync(orderId);
-        return orderResult.IsFailure
-            ? Result<OrderDto>.Failure(orderResult.Error!)
-            : Result<OrderDto>.Success(MapToDto(orderResult.Value));
+        if (orderResult.IsFailure)
+        {
+            return Result<OrderDto>.Failure(orderResult.Error!);
+        }
+
+        return CanAccessOrder(orderResult.Value, currentUserId, isAdmin)
+            ? Result<OrderDto>.Success(MapToDto(orderResult.Value))
+            : Result<OrderDto>.Failure(Errors.Orders.AccessDenied);
     }
 
     public async Task<Result<IEnumerable<OrderDto>>> GetUserOrdersAsync(Guid userId)
@@ -137,5 +141,10 @@ public sealed class OrderService(
                 orderItem.PriceAtPurchase
             )).ToList()
         );
+    }
+
+    private static bool CanAccessOrder(Order order, Guid currentUserId, bool isAdmin)
+    {
+        return isAdmin || order.UserId == currentUserId;
     }
 }

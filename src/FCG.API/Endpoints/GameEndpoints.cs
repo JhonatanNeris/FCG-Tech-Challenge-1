@@ -42,7 +42,11 @@ public static class GameEndpoints
 
         library.MapGet("/", async (IGameService service, ClaimsPrincipal user) =>
         {
-            var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if (!user.TryGetUserId(out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
             var result = await service.GetLibraryAsync(userId);
             return result.ToHttpResult(Results.Ok);
         });

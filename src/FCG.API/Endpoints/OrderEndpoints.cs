@@ -20,27 +20,45 @@ public static class OrderEndpoints
                 return validation.ToBadRequestValidationProblem();
             }
 
-            var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if (!user.TryGetUserId(out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
             var result = await service.CreateOrderAsync(userId, dto);
             return result.ToHttpResult(order => Results.Created($"/api/orders/{order.Id}", order));
         });
 
-        group.MapGet("/{id:guid}", async (Guid id, IOrderService service) =>
+        group.MapGet("/{id:guid}", async (Guid id, IOrderService service, ClaimsPrincipal user) =>
         {
-            var result = await service.GetOrderByIdAsync(id);
+            if (!user.TryGetUserId(out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await service.GetOrderByIdAsync(id, userId, user.IsAdmin());
             return result.ToHttpResult(Results.Ok);
         });
 
         group.MapGet("/", async (IOrderService service, ClaimsPrincipal user) =>
         {
-            var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if (!user.TryGetUserId(out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
             var result = await service.GetUserOrdersAsync(userId);
             return result.ToHttpResult(Results.Ok);
         });
 
-        group.MapPost("/{id:guid}/pay", async (Guid id, IOrderService service) =>
+        group.MapPost("/{id:guid}/pay", async (Guid id, IOrderService service, ClaimsPrincipal user) =>
         {
-            var result = await service.ApprovePaymentAsync(id);
+            if (!user.TryGetUserId(out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await service.ApprovePaymentAsync(id, userId, user.IsAdmin());
             return result.ToHttpResult(() => Results.Ok(new { message = "Pagamento aprovado e jogos adicionados a biblioteca." }));
         });
     }
