@@ -1,12 +1,13 @@
 using FCG.Application.DTOs;
 using FCG.Application.Security;
+using FCG.Domain.Enums;
 using FluentValidation;
 
 namespace FCG.Application.Validators;
 
-public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
+public class CreateUserValidator : AbstractValidator<CreateUserDto>
 {
-    public RegisterUserValidator()
+    public CreateUserValidator()
     {
         RuleFor(user => user.Name).NotEmpty().WithMessage("Nome e obrigatorio.");
 
@@ -18,5 +19,10 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
             .Matches("[a-zA-Z]").WithMessage("A senha deve conter pelo menos uma letra.")
             .Matches("[0-9]").WithMessage("A senha deve conter pelo menos um numero.")
             .Matches("[^a-zA-Z0-9]").WithMessage("A senha deve conter pelo menos um caractere especial.");
+
+        RuleFor(user => user.Role)
+            .NotEmpty().WithMessage("Role e obrigatoria.")
+            .Must(role => Enum.TryParse<Role>(role, ignoreCase: true, out _))
+            .WithMessage("Role informada e invalida.");
     }
 }

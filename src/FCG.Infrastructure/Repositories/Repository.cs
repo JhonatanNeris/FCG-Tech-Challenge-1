@@ -33,4 +33,10 @@ public abstract class Repository<TEntity>(AppDbContext context, Error notFoundEr
         Context.Set<TEntity>().Update(entity);
         return Task.FromResult(Result.Success());
     }
+
+    public virtual Task<Result> DeleteAsync(TEntity entity)
+    {
+        Context.Set<TEntity>().Remove(entity);
+        return Task.FromResult(Result.Success());
+    }
 }

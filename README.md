@@ -1,116 +1,201 @@
-# FCG (Fiap Cloud Games) 
+# FCG (FIAP Cloud Games)
 
-Bem-vindo ao repositório do **FCG**, uma API para gerenciamento de lojas de jogos desenvolvida em **.NET 10**. Este projeto utiliza os princípios de **Clean Architecture** (Arquitetura Limpa) e **Domain-Driven Design (DDD)** para criar um sistema escalável e de fácil manutenção.
+API REST para cadastro de usuarios, autenticacao, catalogo de jogos, fluxo de compra e biblioteca de jogos adquiridos.
 
-## 🚀 Tecnologias Utilizadas
+O projeto usa Minimal APIs, Entity Framework Core com SQL Server, JWT Bearer, FluentValidation, Swagger e organizacao em camadas seguindo principios de Clean Architecture e DDD.
 
-- **.NET 10** (Minimal APIs)
-- **Entity Framework Core 10** (com Microsoft SQL Server)
-- **Autenticação:** JWT Bearer (JSON Web Tokens)
-- **Validação:** FluentValidation
-- **Documentação de API:** Swagger (OpenAPI)
-- **Arquitetura:** Clean Architecture / DDD (Domain, Application, Infrastructure, API)
+## Tecnologias
 
-## 📦 Estrutura do Projeto
+- .NET 10
+- Entity Framework Core 10
+- SQL Server
+- JWT Bearer
+- FluentValidation
+- Swagger / OpenAPI
+- xUnit e FluentAssertions
+- Docker Compose
 
-O projeto está dividido nas seguintes camadas:
+## Estrutura
 
-- **src/FCG.API:** Camada de apresentação contendo os Endpoints (Minimal APIs), Middlewares de tratamento de erro, e injeção de dependências.
-- **src/FCG.Application:** Camada de aplicação contendo os Casos de Uso (Services), Interfaces (Contratos) e validações com FluentValidation.
-- **src/FCG.Domain:** Núcleo do sistema, contendo as entidades de domínio (`User`, `Game`, `Promotion`, `Order`, `OrderItem`, `LibraryItem`) e regras de negócio essenciais.
-- **src/FCG.Infrastructure:** Camada de acesso a dados (Entity Framework Core DbContext, Migrations) e implementação dos repositórios.
-- **test/FCG.Test:** Projetos de testes (unitários/integração).
+- `src/FCG.API`: endpoints, middlewares, configuracao da API e composicao de dependencias.
+- `src/FCG.Application`: services, DTOs, validadores, contratos e regras de aplicacao.
+- `src/FCG.Domain`: entidades, enums, erros padronizados, Result Pattern e regras de dominio.
+- `src/FCG.Infrastructure`: DbContext, migrations, repositories, Unit of Work e servicos de infraestrutura.
+- `test/FCG.Test`: testes unitarios das principais regras.
 
-## ✨ Funcionalidades Principais e Atualizações Recentes
+## Regras Atendidas
 
-A API gerencia um catálogo de jogos e permite aos usuários comprar jogos que são então adicionados à sua biblioteca (`LibraryItem`). 
+### Cadastro de usuarios
 
-Recentemente ocorreram mudanças arquiteturais significativas:
+O cadastro publico recebe nome, e-mail e senha.
 
-1. **Fluxo de Compras Baseado em Pedidos (Order-Based Flow):** 
-   - A aquisição de jogos foi refatorada de uma adição direta à biblioteca para um fluxo robusto de comércio eletrônico. 
-   - O sistema agora suporta a criação de um pedido (`Order`) que pode conter múltiplos jogos (`OrderItem`), simulando um processo de aprovação de pagamento antes que os jogos sejam disponibilizados na biblioteca do usuário.
-2. **Sistema de Promoções (Promotions):**
-   - Implementação da entidade de Promoção (`Promotion`), permitindo que usuários com perfil de administrador criem ofertas promocionais para jogos específicos, definindo descontos e períodos de validade.
-3. **Busca de Jogos Integrada às Promoções:**
-   - A funcionalidade de busca de jogos foi atualizada. Agora, ao buscar pelo catálogo, a API automaticamente verifica e integra as informações de promoções ativas ao retorno, informando o status promocional e os preços atualizados para o cliente final.
-4. **Migração de Banco de Dados:**
-   - A configuração de banco de dados e persistência foi padronizada e migrada com sucesso para utilizar o **Microsoft SQL Server** via Entity Framework Core.
+A senha deve respeitar a politica minima:
 
-## ⚙️ Configuração e Execução Locais
+- minimo de 8 caracteres;
+- pelo menos uma letra;
+- pelo menos um numero;
+- pelo menos um caractere especial.
 
-### Pré-requisitos
-- .NET 10 SDK
-- Microsoft SQL Server (LocalDB ou em contêiner Docker)
+O e-mail e validado com FluentValidation.
 
-### Passos
+### Autenticacao e autorizacao
 
-1. **Clone o repositório e acesse a pasta raiz.**
-2. **Caso deseje rodar o banco de dados no Docker**, siga o tutorial logo abaixo antes de executar o projeto.
-3. **Atualize as credenciais no `appsettings.json` (no projeto FCG.API):**
-   Verifique a connection string `"DefaultConnection"` e tenha certeza de que o SQL Server está acessível.
-   ```
-   "DefaultConnection": "Server=localhost,1433;Database=FCGDb;User Id=sa;Password=ArquiteturaFiap.NET@2026;TrustServerCertificate=True;"
-   ```
-   *Altere `ArquiteturaFiap.NET@2026` se desejar outra senha.*
-   > **Nota:** O contêiner utiliza a imagem oficial `mcr.microsoft.com/mssql/server:2022-latest`. A senha padrão (`ArquiteturaFiap.NET@2026`) deve atender aos requisitos de complexidade do SQL Server.
-   
-4. **Aplicar Migrations:**
+A API usa JWT Bearer e possui dois perfis:
 
-   Caso não tenha o EF Core CLI instalado: 
-   ```bash
-   dotnet tool install --global dotnet-ef
+- `User`: acessa a plataforma, cria pedidos e consulta sua biblioteca.
+- `Admin`: cadastra jogos, cria/desativa promocoes e administra usuarios.
 
-   export PATH="$PATH:$HOME/.dotnet/tools"
-   ```
+Tokens incluem claims de id, nome, e-mail e role. Os logs estruturados incluem escopo com `UserId` e `UserEmail` para usuarios autenticados.
 
-   No diretório do projeto da API (`src/FCG.API`), execute o seguinte comando para criar a base de dados:
-   ```bash
-   dotnet ef database update --project ../FCG.Infrastructure
-   ```
-      
-5. **Executar a API:**
-   Ainda no diretório da API, execute o comando:
-   ```bash
-   dotnet run
-   ```
-6. **Acessar a documentação (Swagger):**
-   Com o ambiente em modo de desenvolvimento, acesse a URL base (ex: `https://localhost:7123/swagger`) no navegador para testar os endpoints interativamente.
+### Biblioteca de jogos adquiridos
 
-### 🐳 Executando SQL Server via Docker
+O fluxo atual de aquisicao funciona por pedidos:
 
-Para facilitar o desenvolvimento, você pode rodar o SQL Server em um contêiner Docker usando o `docker-compose.yml` já incluído no projeto.
+1. O usuario consulta o catalogo de jogos.
+2. O usuario cria um pedido com um ou mais jogos.
+3. O pagamento do pedido e aprovado.
+4. Os jogos do pedido sao adicionados a biblioteca do usuario.
 
-1. **Instale o Docker** se ainda não o fez.
-2. **Inicie o contêiner**:
-   ```bash
-   docker-compose up -d
-   ```
-   Isso criará um contêiner chamado `fcg_sqlserver` expondo a porta **1433**.
+Usuarios nao podem consultar ou pagar pedidos de outros usuarios. Admins podem acessar pedidos para administracao.
 
-3. **Aguarde o SQL Server iniciar** (aproximadamente 30‑40 s). Você pode checar o log:
-   ```bash
-   docker logs -f fcg_sqlserver
-   ```
+### Administracao de usuarios
 
-4. **Parar o contêiner** quando não precisar mais:
-   ```bash
-   docker-compose down   
-   ```
+Endpoints protegidos por role `Admin` permitem:
 
-## 🔒 Autenticação
+- cadastrar usuarios com role `User` ou `Admin`;
+- listar usuarios paginados;
+- consultar usuario por id;
+- alterar role do usuario.
+- excluir usuarios.
 
-Para os endpoints protegidos, é necessário realizar o login ou registro para obter um token JWT.
-No Swagger, utilize o botão "Authorize" no topo da página e insira seu token no formato: `Bearer <SEU_TOKEN>`.
+O cadastro publico sempre cria usuarios com role `User`.
 
-### Usuario administrador seedado
+O usuario default `fgc_admin@admin.com` nao pode ser excluido pela API.
 
-A aplicacao cria automaticamente, no warmup apos aplicar as migrations, o usuario administrador principal:
+## Usuario Administrador Seedado
+
+A aplicacao cria automaticamente um administrador no warmup, apos aplicar migrations.
 
 ```text
 Email: fgc_admin@admin.com
-Senha: admin
+Senha local padrao: Adm!n123
 Role: Admin
 ```
 
-Esse usuario e o admin da aplicacao. O endpoint de cadastro publico nao cria administradores; todos os usuarios cadastrados pela API recebem sempre a role `User`.
+A senha do admin e configuravel pela variavel de ambiente:
+
+```text
+Admin_Password
+```
+
+Essa senha tambem precisa seguir a politica forte: minimo de 8 caracteres, letras, numeros e caracteres especiais. Se uma senha fraca for configurada, a aplicacao falha no startup.
+
+## Variaveis de Ambiente
+
+```text
+ConnectionStrings__DefaultConnection
+chave_secreta
+Admin_Password
+Jwt_Key
+Jwt_Issuer
+Jwt_Audience
+```
+
+## Executando com Docker
+
+```bash
+docker-compose up --build
+```
+
+A API fica disponivel em:
+
+```text
+http://localhost:5169
+```
+
+O Swagger fica disponivel em ambiente de desenvolvimento:
+
+```text
+http://localhost:5169/swagger
+```
+
+## Executando Localmente
+
+Suba o SQL Server localmente ou via Docker e execute:
+
+```bash
+dotnet run --project src/FCG.API
+```
+
+As migrations e o seed do admin sao aplicados automaticamente no warmup da aplicacao.
+
+## Principais Endpoints
+
+### Autenticacao
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+
+### Jogos
+
+- `GET /api/games`
+- `GET /api/games/{id}`
+- `POST /api/games` - Admin
+
+### Pedidos
+
+- `POST /api/orders`
+- `GET /api/orders`
+- `GET /api/orders/{id}`
+- `POST /api/orders/{id}/pay`
+
+### Biblioteca
+
+- `GET /api/library`
+
+### Promocoes
+
+- `GET /api/promotions`
+- `POST /api/promotions` - Admin
+- `DELETE /api/promotions/{id}` - Admin
+
+### Administracao de Usuarios
+
+- `POST /api/admin/users` - Admin
+- `GET /api/admin/users` - Admin
+- `GET /api/admin/users/{id}` - Admin
+- `PATCH /api/admin/users/{id}/role` - Admin
+- `DELETE /api/admin/users/{id}` - Admin, exceto usuario default
+
+Exemplo de body para criar usuario Admin:
+
+```json
+{
+  "name": "Admin 2",
+  "email": "admin2@email.com",
+  "password": "Adm!n123",
+  "role": "Admin"
+}
+```
+
+Exemplo de body para alterar role:
+
+```json
+{
+  "role": "Admin"
+}
+```
+
+## Testes
+
+```bash
+dotnet test
+```
+
+Para executar com cobertura das camadas de regras de negocio:
+
+```bash
+dotnet test --collect:"XPlat Code Coverage" --settings coverlet.runsettings
+```
+
+Os testes cobrem validacao de senha/e-mail, politica de senha forte, regras de dominio de pedidos, autorizacao por dono do pedido, fluxo de pedidos, promocoes, catalogo e administracao de usuarios.

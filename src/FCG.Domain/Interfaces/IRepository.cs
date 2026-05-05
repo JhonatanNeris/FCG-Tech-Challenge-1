@@ -8,4 +8,5 @@ public interface IRepository<TEntity> where TEntity : Entity
     Task<Result<TEntity>> GetByIdAsync(Guid id);
     Task<Result> AddAsync(TEntity entity);
     Task<Result> UpdateAsync(TEntity entity);
+    Task<Result> DeleteAsync(TEntity entity);
 }
