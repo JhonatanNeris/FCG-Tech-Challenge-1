@@ -14,5 +14,8 @@ public class UserMap() : IEntityTypeConfiguration<User>
         builder.HasIndex(user => user.Email).IsUnique();
         builder.Property(user => user.PasswordHash).IsRequired();
         builder.Property(user => user.Role).IsRequired();
+        builder.Property(user => user.IsActive).IsRequired().HasDefaultValue(true);
+        builder.Property(user => user.DeactivatedAt);
+        builder.Property(user => user.ReactivatedAt);
     }
 }

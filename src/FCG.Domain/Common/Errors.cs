@@ -47,5 +47,6 @@ public static class Errors
         public static Error NotFoundByEmail => Error.NotFound("Users.NotFoundByEmail", "Usuario nao encontrado.");
         public static Error InvalidRole => Error.InvalidRequest("Users.InvalidRole", "Role informada e invalida.");
         public static Error DefaultAdminCannotBeDeleted => Error.Validation("Users.DefaultAdminCannotBeDeleted", "O administrador default da aplicacao nao pode ser excluido.");
+        public static Error EmailAlreadyRegistered => Error.Validation("Users.EmailAlreadyRegistered", "Ja existe um usuario cadastrado com o e-mail informado.");
     }
 }

@@ -31,10 +31,10 @@ public sealed class UserService(
             return Result<UserDto>.Failure(Errors.Users.InvalidRole);
         }
 
-        var existingUser = await userRepository.GetByEmailAsync(dto.Email);
+        var existingUser = await userRepository.GetByEmailIncludingInactiveAsync(dto.Email);
         if (existingUser.IsSuccess)
         {
-            return Result<UserDto>.Failure(Errors.Auth.RegisterFailed);
+            return Result<UserDto>.Failure(Errors.Users.EmailAlreadyRegistered);
         }
 
         var passwordHash = PasswordHasher.HashPassword(dto.Password, _secretKey);
@@ -59,7 +59,7 @@ public sealed class UserService(
             return Result<PagedResult<UserDto>>.Failure(Errors.Pagination.InvalidPage);
         }
 
-        var usersResult = await userRepository.GetAllAsync(new PaginationParameters(page, _pageSize));
+        var usersResult = await userRepository.GetAllIncludingInactiveAsync(new PaginationParameters(page, _pageSize));
         if (usersResult.IsFailure)
         {
             return Result<PagedResult<UserDto>>.Failure(usersResult.Error!);
@@ -75,7 +75,7 @@ public sealed class UserService(
 
     public async Task<Result<UserDto>> GetByIdAsync(Guid id)
     {
-        var userResult = await userRepository.GetByIdAsync(id);
+        var userResult = await userRepository.GetByIdIncludingInactiveAsync(id);
         return userResult.IsFailure
             ? Result<UserDto>.Failure(userResult.Error!)
             : Result<UserDto>.Success(MapToDto(userResult.Value));
@@ -88,7 +88,7 @@ public sealed class UserService(
             return Result<UserDto>.Failure(Errors.Users.InvalidRole);
         }
 
-        var userResult = await userRepository.GetByIdAsync(id);
+        var userResult = await userRepository.GetByIdIncludingInactiveAsync(id);
         if (userResult.IsFailure)
         {
             return Result<UserDto>.Failure(userResult.Error!);
@@ -108,25 +108,64 @@ public sealed class UserService(
             : Result<UserDto>.Success(MapToDto(userResult.Value));
     }
 
-    public async Task<Result> DeleteAsync(Guid id)
+    public async Task<Result<UserDto>> DeactivateAsync(Guid id)
     {
-        var userResult = await userRepository.GetByIdAsync(id);
+        var userResult = await userRepository.GetByIdIncludingInactiveAsync(id);
         if (userResult.IsFailure)
         {
-            return Result.Failure(userResult.Error!);
+            return Result<UserDto>.Failure(userResult.Error!);
         }
 
         if (string.Equals(userResult.Value.Email, SystemUsers.DefaultAdminEmail, StringComparison.OrdinalIgnoreCase))
         {
-            return Result.Failure(Errors.Users.DefaultAdminCannotBeDeleted);
+            return Result<UserDto>.Failure(Errors.Users.DefaultAdminCannotBeDeleted);
         }
 
-        var deleteResult = await userRepository.DeleteAsync(userResult.Value);
-        return deleteResult.IsFailure ? deleteResult : await unitOfWork.CommitAsync();
+        userResult.Value.Deactivate();
+
+        var updateResult = await userRepository.UpdateAsync(userResult.Value);
+        if (updateResult.IsFailure)
+        {
+            return Result<UserDto>.Failure(updateResult.Error!);
+        }
+
+        var commitResult = await unitOfWork.CommitAsync();
+        return commitResult.IsFailure
+            ? Result<UserDto>.Failure(commitResult.Error!)
+            : Result<UserDto>.Success(MapToDto(userResult.Value));
+    }
+
+    public async Task<Result<UserDto>> ReactivateAsync(Guid id)
+    {
+        var userResult = await userRepository.GetByIdIncludingInactiveAsync(id);
+        if (userResult.IsFailure)
+        {
+            return Result<UserDto>.Failure(userResult.Error!);
+        }
+
+        userResult.Value.Reactivate();
+
+        var updateResult = await userRepository.UpdateAsync(userResult.Value);
+        if (updateResult.IsFailure)
+        {
+            return Result<UserDto>.Failure(updateResult.Error!);
+        }
+
+        var commitResult = await unitOfWork.CommitAsync();
+        return commitResult.IsFailure
+            ? Result<UserDto>.Failure(commitResult.Error!)
+            : Result<UserDto>.Success(MapToDto(userResult.Value));
     }
 
     private static UserDto MapToDto(User user)
     {
-        return new UserDto(user.Id, user.Name, user.Email, user.Role.ToString());
+        return new UserDto(
+            user.Id,
+            user.Name,
+            user.Email,
+            user.Role.ToString(),
+            user.IsActive,
+            user.DeactivatedAt,
+            user.ReactivatedAt);
     }
 }

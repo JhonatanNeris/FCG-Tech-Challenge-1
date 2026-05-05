@@ -108,7 +108,7 @@ public class AuthServiceTests
 
         public Task<Result<User>> GetByEmailAsync(string email)
         {
-            var user = Users.FirstOrDefault(user => user.Email == email);
+            var user = Users.FirstOrDefault(user => user.Email == email && user.IsActive);
             return Task.FromResult(user is null
                 ? Result<User>.Failure(Errors.Users.NotFoundByEmail)
                 : Result<User>.Success(user));
@@ -116,9 +116,19 @@ public class AuthServiceTests
 
         public Task<Result<User>> GetByIdAsync(Guid id)
         {
-            var user = Users.FirstOrDefault(user => user.Id == id);
+            var user = Users.FirstOrDefault(user => user.Id == id && user.IsActive);
             return Task.FromResult(user is null
                 ? Result<User>.Failure(Errors.Users.NotFound)
+                : Result<User>.Success(user));
+        }
+
+        public Task<Result<User>> GetByIdIncludingInactiveAsync(Guid id) => GetByIdAsync(id);
+        public Task<Result<PagedResult<User>>> GetAllIncludingInactiveAsync(PaginationParameters pagination) => GetAllAsync(pagination);
+        public Task<Result<User>> GetByEmailIncludingInactiveAsync(string email)
+        {
+            var user = Users.FirstOrDefault(user => user.Email == email);
+            return Task.FromResult(user is null
+                ? Result<User>.Failure(Errors.Users.NotFoundByEmail)
                 : Result<User>.Success(user));
         }
 
