@@ -49,7 +49,8 @@ public static class WebApplicationExtensions
     {
         if (app.Environment.IsDevelopment())
         {
-            app.MapGet("/", () => Results.Redirect("/swagger"));
+            app.MapGet("/", () => Results.Redirect("/swagger"))
+                .ExcludeFromDescription();
         }
 
         app.MapAuthEndpoints();
