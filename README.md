@@ -103,23 +103,211 @@ Jwt_Issuer
 Jwt_Audience
 ```
 
-## Executando com Docker
+## Executando Todo o Projeto com Docker Compose
+
+Este e o caminho recomendado para executar o projeto completo, subindo a API e o SQL Server juntos.
+
+### 1. Pre-requisitos
+
+Antes de iniciar, verifique se voce tem instalado:
+
+- Docker Desktop ou Docker Engine;
+- Docker Compose;
+- uma porta local `1433` livre para o SQL Server;
+- uma porta local `5169` livre para a API.
+
+Para conferir se o Docker esta disponivel:
+
+```bash
+docker --version
+docker compose version
+```
+
+Se seu ambiente usar o comando antigo, use `docker-compose` no lugar de `docker compose`.
+
+### 2. Conferir variaveis usadas pelo compose
+
+O arquivo `docker-compose.yml` ja configura tudo que a API precisa:
+
+```text
+ASPNETCORE_ENVIRONMENT=Development
+ASPNETCORE_URLS=http://+:8080
+ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FCGDb;User Id=sa;Password=ArquiteturaFiap.NET@2026;TrustServerCertificate=True;
+chave_secreta=fgc_tech_challenge
+Admin_Password=Adm!n123
+Jwt_Key=zR8pW5vB9yX2mN4qA7L1jK9sT6uE3hG0fD5cX8vB2nN1mQ4wZ7xR0tY3uI6pP9oL
+Jwt_Issuer=FCG.API
+Jwt_Audience=FCG.API
+```
+
+A senha do SQL Server configurada no compose e:
+
+```text
+ArquiteturaFiap.NET@2026
+```
+
+A senha do admin default configurada no compose e:
+
+```text
+Adm!n123
+```
+
+Ela respeita a politica de senha forte da aplicacao.
+
+### 3. Subir os containers
+
+Na raiz do repositorio, execute:
+
+```bash
+docker compose up --build
+```
+
+Ou, usando o comando legado:
 
 ```bash
 docker-compose up --build
 ```
 
-A API fica disponivel em:
+Esse comando faz:
+
+- build da imagem da API;
+- download da imagem `mcr.microsoft.com/mssql/server:2022-latest`;
+- criacao do container `fcg_sqlserver`;
+- criacao do container `fcg_api`;
+- aguarda o SQL Server ficar saudavel pelo healthcheck;
+- inicia a API somente depois do banco estar pronto.
+
+### 4. Aguardar a inicializacao
+
+Na primeira execucao, o SQL Server pode levar alguns segundos para ficar pronto.
+
+Quando a API iniciar, ela executa automaticamente:
+
+- migrations do Entity Framework;
+- seed do usuario admin default.
+
+Mensagem esperada nos logs da API:
+
+```text
+Banco de dados atualizado com sucesso!
+```
+
+### 5. Acessar a API
 
 ```text
 http://localhost:5169
 ```
 
-O Swagger fica disponivel em ambiente de desenvolvimento:
+Swagger:
 
 ```text
 http://localhost:5169/swagger
 ```
+
+### 6. Login com o admin default
+
+No Swagger, chame:
+
+```http
+POST /api/auth/login
+```
+
+Body:
+
+```json
+{
+  "email": "fgc_admin@admin.com",
+  "password": "Adm!n123"
+}
+```
+
+Copie o token retornado e clique em `Authorize` no Swagger.
+
+Informe:
+
+```text
+Bearer <token>
+```
+
+Com esse token voce consegue acessar os endpoints protegidos por role `Admin`.
+
+### 7. Fluxo sugerido para testar
+
+1. Fazer login como admin default.
+2. Criar um jogo em `POST /api/games`.
+3. Criar um usuario comum em `POST /api/auth/register`.
+4. Fazer login com o usuario comum.
+5. Criar um pedido em `POST /api/orders`.
+6. Aprovar o pagamento em `POST /api/orders/{id}/pay`.
+7. Consultar a biblioteca em `GET /api/library`.
+
+### 8. Rodar em segundo plano
+
+Para deixar os containers em background:
+
+```bash
+docker compose up --build -d
+```
+
+Ver logs da API:
+
+```bash
+docker logs -f fcg_api
+```
+
+Ver logs do SQL Server:
+
+```bash
+docker logs -f fcg_sqlserver
+```
+
+Listar containers:
+
+```bash
+docker compose ps
+```
+
+### 9. Parar os containers
+
+```bash
+docker compose down
+```
+
+Isso para e remove os containers da aplicacao, mas nao remove imagens.
+
+### 10. Limpar tudo e recriar do zero
+
+Se quiser apagar containers, rede e volumes anonimos criados pelo compose:
+
+```bash
+docker compose down -v
+```
+
+Depois suba novamente:
+
+```bash
+docker compose up --build
+```
+
+### 11. Problemas comuns
+
+Se a porta `1433` ja estiver em uso, pare outro SQL Server local ou altere o mapeamento de porta no `docker-compose.yml`.
+
+Se a porta `5169` ja estiver em uso, altere:
+
+```yaml
+ports:
+  - "5169:8080"
+```
+
+para outra porta local, por exemplo:
+
+```yaml
+ports:
+  - "5170:8080"
+```
+
+Se a API falhar no startup por senha fraca do admin, ajuste `Admin_Password` no `docker-compose.yml` para uma senha com minimo de 8 caracteres, letras, numeros e caracteres especiais.
 
 ## Executando Localmente
 
