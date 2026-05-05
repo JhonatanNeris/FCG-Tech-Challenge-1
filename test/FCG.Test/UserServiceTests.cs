@@ -91,7 +91,7 @@ public class UserServiceTests
         var result = await service.CreateAsync(new CreateUserDto("Admin 2", "admin2@email.com", "Adm!n123", "Admin"));
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(Errors.Auth.RegisterFailed);
+        result.Error.Should().Be(Errors.Users.EmailAlreadyRegistered);
     }
 
     [Fact]
@@ -112,25 +112,47 @@ public class UserServiceTests
         var repository = new FakeUserRepository(defaultAdmin);
         var service = CreateService(repository);
 
-        var result = await service.DeleteAsync(defaultAdmin.Id);
+        var result = await service.DeactivateAsync(defaultAdmin.Id);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(Errors.Users.DefaultAdminCannotBeDeleted);
-        repository.Users.Should().Contain(defaultAdmin);
+        defaultAdmin.IsActive.Should().BeTrue();
     }
 
     [Fact]
-    public async Task DeleteAsync_ShouldRemoveUser_WhenUserIsNotDefaultAdmin()
+    public async Task DeactivateAsync_ShouldInactivateUser_WhenUserIsNotDefaultAdmin()
     {
         var user = new User("User", "user@email.com", "hash", Role.User);
         var repository = new FakeUserRepository(user);
         var unitOfWork = new FakeUnitOfWork();
         var service = CreateService(repository, unitOfWork);
 
-        var result = await service.DeleteAsync(user.Id);
+        var result = await service.DeactivateAsync(user.Id);
 
         result.IsSuccess.Should().BeTrue();
-        repository.Users.Should().BeEmpty();
+        result.Value.IsActive.Should().BeFalse();
+        result.Value.DeactivatedAt.Should().NotBeNull();
+        user.IsActive.Should().BeFalse();
+        user.DeactivatedAt.Should().NotBeNull();
+        unitOfWork.CommitCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_ShouldReactivateUser_KeepingDeactivationDateAsHistory()
+    {
+        var user = new User("User", "user@email.com", "hash", Role.User);
+        user.Deactivate();
+        var deactivatedAt = user.DeactivatedAt;
+        var repository = new FakeUserRepository(user);
+        var unitOfWork = new FakeUnitOfWork();
+        var service = CreateService(repository, unitOfWork);
+
+        var result = await service.ReactivateAsync(user.Id);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.IsActive.Should().BeTrue();
+        result.Value.DeactivatedAt.Should().Be(deactivatedAt);
+        result.Value.ReactivatedAt.Should().NotBeNull();
         unitOfWork.CommitCount.Should().Be(1);
     }
 
@@ -166,7 +188,7 @@ public class UserServiceTests
 
         public Task<Result<User>> GetByEmailAsync(string email)
         {
-            var user = Users.FirstOrDefault(user => user.Email == email);
+            var user = Users.FirstOrDefault(user => user.Email == email && user.IsActive);
             return Task.FromResult(user is null
                 ? Result<User>.Failure(Errors.Users.NotFoundByEmail)
                 : Result<User>.Success(user));
@@ -174,9 +196,36 @@ public class UserServiceTests
 
         public Task<Result<User>> GetByIdAsync(Guid id)
         {
+            var user = Users.FirstOrDefault(user => user.Id == id && user.IsActive);
+            return Task.FromResult(user is null
+                ? Result<User>.Failure(Errors.Users.NotFound)
+                : Result<User>.Success(user));
+        }
+
+        public Task<Result<User>> GetByIdIncludingInactiveAsync(Guid id)
+        {
             var user = Users.FirstOrDefault(user => user.Id == id);
             return Task.FromResult(user is null
                 ? Result<User>.Failure(Errors.Users.NotFound)
+                : Result<User>.Success(user));
+        }
+
+        public Task<Result<PagedResult<User>>> GetAllIncludingInactiveAsync(PaginationParameters pagination)
+        {
+            var items = Users
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToArray();
+
+            return Task.FromResult(Result<PagedResult<User>>.Success(
+                new PagedResult<User>(items, pagination.Page, pagination.PageSize, Users.Count)));
+        }
+
+        public Task<Result<User>> GetByEmailIncludingInactiveAsync(string email)
+        {
+            var user = Users.FirstOrDefault(user => user.Email == email);
+            return Task.FromResult(user is null
+                ? Result<User>.Failure(Errors.Users.NotFoundByEmail)
                 : Result<User>.Success(user));
         }
 

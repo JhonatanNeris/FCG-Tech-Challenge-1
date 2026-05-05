@@ -53,8 +53,14 @@ public static class AdminUserEndpoints
 
         group.MapDelete("/{id:guid}", async (Guid id, IUserService service) =>
         {
-            var result = await service.DeleteAsync(id);
-            return result.ToHttpResult(Results.NoContent);
+            var result = await service.DeactivateAsync(id);
+            return result.ToHttpResult(Results.Ok);
+        });
+
+        group.MapPatch("/{id:guid}/reactivate", async (Guid id, IUserService service) =>
+        {
+            var result = await service.ReactivateAsync(id);
+            return result.ToHttpResult(Results.Ok);
         });
     }
 }

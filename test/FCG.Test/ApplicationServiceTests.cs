@@ -319,6 +319,9 @@ public class ApplicationServiceTests
         public Task<Result<PagedResult<User>>> GetAllAsync(PaginationParameters pagination) => Task.FromResult(Result<PagedResult<User>>.Success(new PagedResult<User>([], pagination.Page, pagination.PageSize, 0)));
         public Task<Result<User>> GetByEmailAsync(string email) => Task.FromResult(Result<User>.Failure(Errors.Users.NotFoundByEmail));
         public Task<Result<User>> GetByIdAsync(Guid id) => Task.FromResult(Result<User>.Success(_user));
+        public Task<Result<User>> GetByIdIncludingInactiveAsync(Guid id) => Task.FromResult(Result<User>.Success(_user));
+        public Task<Result<PagedResult<User>>> GetAllIncludingInactiveAsync(PaginationParameters pagination) => GetAllAsync(pagination);
+        public Task<Result<User>> GetByEmailIncludingInactiveAsync(string email) => Task.FromResult(Result<User>.Failure(Errors.Users.NotFoundByEmail));
         public Task<Result> UpdateAsync(User entity) => Task.FromResult(Result.Success());
         public Task<Result> DeleteAsync(User entity) => Task.FromResult(Result.Success());
     }

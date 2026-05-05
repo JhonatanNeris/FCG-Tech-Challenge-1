@@ -91,6 +91,9 @@ public class OrderServiceAuthorizationTests
         public Task<Result<PagedResult<User>>> GetAllAsync(PaginationParameters pagination) => Task.FromResult(Result<PagedResult<User>>.Success(new PagedResult<User>([user], 1, 30, 1)));
         public Task<Result<User>> GetByEmailAsync(string email) => Task.FromResult(Result<User>.Success(user));
         public Task<Result<User>> GetByIdAsync(Guid id) => Task.FromResult(Result<User>.Success(user));
+        public Task<Result<User>> GetByIdIncludingInactiveAsync(Guid id) => Task.FromResult(Result<User>.Success(user));
+        public Task<Result<PagedResult<User>>> GetAllIncludingInactiveAsync(PaginationParameters pagination) => GetAllAsync(pagination);
+        public Task<Result<User>> GetByEmailIncludingInactiveAsync(string email) => Task.FromResult(Result<User>.Success(user));
         public Task<Result> UpdateAsync(User entity) => Task.FromResult(Result.Success());
         public Task<Result> DeleteAsync(User entity) => Task.FromResult(Result.Success());
     }

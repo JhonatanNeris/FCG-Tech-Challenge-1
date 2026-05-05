@@ -63,14 +63,16 @@ Usuarios nao podem consultar ou pagar pedidos de outros usuarios. Admins podem a
 Endpoints protegidos por role `Admin` permitem:
 
 - cadastrar usuarios com role `User` ou `Admin`;
-- listar usuarios paginados;
-- consultar usuario por id;
+- listar usuarios paginados, incluindo usuarios inativos;
+- consultar usuario por id, incluindo usuarios inativos;
 - alterar role do usuario.
-- excluir usuarios.
+- inativar usuarios por exclusao logica;
+- reativar usuarios inativos.
 
 O cadastro publico sempre cria usuarios com role `User`.
 
-O usuario default `fgc_admin@admin.com` nao pode ser excluido pela API.
+O usuario default `fgc_admin@admin.com` nao pode ser inativado pela API.
+Usuarios inativos nao aparecem nas buscas comuns nem conseguem autenticar, mas continuam visiveis para Admin.
 
 ## Usuario Administrador Seedado
 
@@ -165,7 +167,8 @@ As migrations e o seed do admin sao aplicados automaticamente no warmup da aplic
 - `GET /api/admin/users` - Admin
 - `GET /api/admin/users/{id}` - Admin
 - `PATCH /api/admin/users/{id}/role` - Admin
-- `DELETE /api/admin/users/{id}` - Admin, exceto usuario default
+- `DELETE /api/admin/users/{id}` - Admin, inativa usuario, exceto usuario default
+- `PATCH /api/admin/users/{id}/reactivate` - Admin, reativa usuario
 
 Exemplo de body para criar usuario Admin:
 
@@ -198,4 +201,4 @@ Para executar com cobertura das camadas de regras de negocio:
 dotnet test --collect:"XPlat Code Coverage" --settings coverlet.runsettings
 ```
 
-Os testes cobrem validacao de senha/e-mail, politica de senha forte, regras de dominio de pedidos, autorizacao por dono do pedido, fluxo de pedidos, promocoes, catalogo e administracao de usuarios.
+Os testes cobrem validacao de senha/e-mail, politica de senha forte, regras de dominio de pedidos, autorizacao por dono do pedido, fluxo de pedidos, promocoes, catalogo, administracao de usuarios e inativacao logica.
