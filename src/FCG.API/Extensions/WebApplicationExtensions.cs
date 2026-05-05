@@ -47,6 +47,11 @@ public static class WebApplicationExtensions
 
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapGet("/", () => Results.Redirect("/swagger"));
+        }
+
         app.MapAuthEndpoints();
         app.MapGameEndpoints();
         app.MapPromotionEndpoints();
