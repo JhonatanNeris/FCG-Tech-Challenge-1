@@ -66,6 +66,31 @@ public class OrderServiceAuthorizationTests
         unitOfWork.CommitCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task ApprovePaymentAsync_ShouldCommitTrackedChanges_WithoutCallingRepositoryUpdate()
+    {
+        var ownerId = Guid.NewGuid();
+        var order = new Order(ownerId);
+        var user = new User("Owner", "owner@email.com", "hash", Role.User);
+        var orderRepository = new FakeOrderRepository(order);
+        var userRepository = new FakeUserRepository(user);
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new OrderService(
+            new FakeGameRepository(),
+            orderRepository,
+            userRepository,
+            new FakePromotionRepository(),
+            unitOfWork);
+
+        var result = await service.ApprovePaymentAsync(order.Id, ownerId, isAdmin: false);
+
+        result.IsSuccess.Should().BeTrue();
+        order.Status.Should().Be(OrderStatus.Paid);
+        orderRepository.UpdateCount.Should().Be(0);
+        userRepository.UpdateCount.Should().Be(0);
+        unitOfWork.CommitCount.Should().Be(1);
+    }
+
     private static OrderService CreateService(Order order, FakeUnitOfWork? unitOfWork = null)
     {
         return new OrderService(
@@ -78,15 +103,24 @@ public class OrderServiceAuthorizationTests
 
     private sealed class FakeOrderRepository(Order order) : IOrderRepository
     {
+        public int UpdateCount { get; private set; }
+
         public Task<Result> AddAsync(Order entity) => Task.FromResult(Result.Success());
         public Task<Result<IEnumerable<Order>>> GetByUserIdAsync(Guid userId) => Task.FromResult(Result<IEnumerable<Order>>.Success([order]));
         public Task<Result<Order>> GetByIdAsync(Guid id) => Task.FromResult(id == order.Id ? Result<Order>.Success(order) : Result<Order>.Failure(Errors.Orders.NotFound));
-        public Task<Result> UpdateAsync(Order entity) => Task.FromResult(Result.Success());
+        public Task<Result> UpdateAsync(Order entity)
+        {
+            UpdateCount++;
+            return Task.FromResult(Result.Success());
+        }
+
         public Task<Result> DeleteAsync(Order entity) => Task.FromResult(Result.Success());
     }
 
     private sealed class FakeUserRepository(User user) : IUserRepository
     {
+        public int UpdateCount { get; private set; }
+
         public Task<Result> AddAsync(User entity) => Task.FromResult(Result.Success());
         public Task<Result<PagedResult<User>>> GetAllAsync(PaginationParameters pagination) => Task.FromResult(Result<PagedResult<User>>.Success(new PagedResult<User>([user], 1, 30, 1)));
         public Task<Result<User>> GetByEmailAsync(string email) => Task.FromResult(Result<User>.Success(user));
@@ -94,7 +128,12 @@ public class OrderServiceAuthorizationTests
         public Task<Result<User>> GetByIdIncludingInactiveAsync(Guid id) => Task.FromResult(Result<User>.Success(user));
         public Task<Result<PagedResult<User>>> GetAllIncludingInactiveAsync(PaginationParameters pagination) => GetAllAsync(pagination);
         public Task<Result<User>> GetByEmailIncludingInactiveAsync(string email) => Task.FromResult(Result<User>.Success(user));
-        public Task<Result> UpdateAsync(User entity) => Task.FromResult(Result.Success());
+        public Task<Result> UpdateAsync(User entity)
+        {
+            UpdateCount++;
+            return Task.FromResult(Result.Success());
+        }
+
         public Task<Result> DeleteAsync(User entity) => Task.FromResult(Result.Success());
     }
 
