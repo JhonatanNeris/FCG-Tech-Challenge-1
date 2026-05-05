@@ -21,7 +21,8 @@ public static class WebApplicationExtensions
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ocorreu um erro ao aplicar as migracoes: {ex.Message}");
+            app.Logger.LogCritical(ex, "Ocorreu um erro ao aplicar as migracoes ou executar o seed.");
+            throw;
         }
     }
 

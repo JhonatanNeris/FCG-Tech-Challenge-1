@@ -11,15 +11,17 @@ namespace FCG.Infrastructure.Services;
 
 public sealed class TokenService(IOptions<JwtSettings> jwtSettings) : ITokenService
 {
-    private readonly string _key = jwtSettings.Value.Key;
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
     public string GenerateToken(User user)
     {
         var handler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_key);
+        var key = Encoding.ASCII.GetBytes(_jwtSettings.Key);
 
         var descriptor = new SecurityTokenDescriptor
         {
+            Issuer = _jwtSettings.Issuer,
+            Audience = _jwtSettings.Audience,
             Subject = new ClaimsIdentity(new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),

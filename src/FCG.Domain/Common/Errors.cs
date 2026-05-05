@@ -16,6 +16,7 @@ public static class Errors
     public static class Orders
     {
         public static Error NotFound => Error.NotFound("Orders.NotFound", "Pedido nao encontrado.");
+        public static Error AccessDenied => Error.Forbidden("Orders.AccessDenied", "Usuario nao possui permissao para acessar este pedido.");
         public static Error EmptyGames => Error.InvalidRequest("Orders.EmptyGames", "Informe ao menos um jogo para criar o pedido.");
         public static Error InvalidStatus(string message) => Error.Validation("Orders.InvalidStatus", message);
         public static Error NotPending(Guid orderId) => InvalidStatus($"Pedido com ID {orderId} nao esta em status Pendente.");
@@ -36,7 +37,7 @@ public static class Errors
 
     public static class UnitOfWork
     {
-        public static Error CommitFailed(string message) => Error.Failure("UnitOfWork.CommitFailed", message);
+        public static Error CommitFailed => Error.Failure("UnitOfWork.CommitFailed", "Nao foi possivel concluir a operacao no banco de dados.");
     }
 
     public static class Users

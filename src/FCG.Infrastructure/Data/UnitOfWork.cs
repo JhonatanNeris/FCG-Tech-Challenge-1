@@ -1,9 +1,10 @@
 using FCG.Domain.Common;
 using FCG.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace FCG.Infrastructure.Data;
 
-public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
+public sealed class UnitOfWork(AppDbContext context, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
     public async Task<Result> CommitAsync(CancellationToken cancellationToken = default)
     {
@@ -14,7 +15,8 @@ public sealed class UnitOfWork(AppDbContext context) : IUnitOfWork
         }
         catch (Exception ex)
         {
-            return Result.Failure(Errors.UnitOfWork.CommitFailed(ex.Message));
+            logger.LogError(ex, "Erro ao salvar alteracoes no banco de dados.");
+            return Result.Failure(Errors.UnitOfWork.CommitFailed);
         }
     }
 }

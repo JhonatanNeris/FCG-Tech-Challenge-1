@@ -24,7 +24,7 @@ public static class ServiceCollectionExtensions
             .AddDatabase(configuration.ConnectionString)
             .AddRepositories()
             .AddApplicationServices(configuration)
-            .AddApiAuthentication(configuration.JwtKey)
+            .AddApiAuthentication(configuration)
             .AddApiExceptionHandling()
             .AddApiDocumentation();
 
@@ -55,7 +55,12 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection AddApplicationServices(this IServiceCollection services, ApiConfiguration configuration)
     {
         services.Configure<AuthSettings>(options => options.SecretKey = configuration.SecretKey);
-        services.Configure<JwtSettings>(options => options.Key = configuration.JwtKey);
+        services.Configure<JwtSettings>(options =>
+        {
+            options.Key = configuration.JwtKey;
+            options.Issuer = configuration.JwtIssuer;
+            options.Audience = configuration.JwtAudience;
+        });
         services.Configure<PaginationSettings>(options => options.PageSize = configuration.PageSize);
 
         services.AddScoped<IAuthService, AuthService>();
@@ -69,9 +74,9 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddApiAuthentication(this IServiceCollection services, string jwtKey)
+    private static IServiceCollection AddApiAuthentication(this IServiceCollection services, ApiConfiguration configuration)
     {
-        var key = Encoding.ASCII.GetBytes(jwtKey);
+        var key = Encoding.ASCII.GetBytes(configuration.JwtKey);
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(jwtBearerOptions =>
@@ -82,8 +87,10 @@ public static class ServiceCollectionExtensions
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false
+                    ValidateIssuer = true,
+                    ValidIssuer = configuration.JwtIssuer,
+                    ValidateAudience = true,
+                    ValidAudience = configuration.JwtAudience
                 };
             });
 

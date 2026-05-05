@@ -35,7 +35,7 @@ public class Order(Guid userId) : Entity
     {
         if (Status != OrderStatus.Pending)
         {
-            return Result.Failure(Errors.Orders.OnlyPendingOrdersCanBePaid);
+            return Result.Failure(Errors.Orders.NotPending(Id));
         }
 
         Status = OrderStatus.Paid;
