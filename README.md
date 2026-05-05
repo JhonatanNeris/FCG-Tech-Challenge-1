@@ -168,6 +168,8 @@ Ou, usando o comando legado:
 docker-compose up --build
 ```
 
+Importante: suba pelo Compose na raiz do repositorio. Se voce executar a imagem manualmente pelo Docker Desktop, as variaveis do `docker-compose.yml` nao serao aplicadas e a API pode falhar com erro de configuracao obrigatoria, como `chave_secreta`.
+
 Esse comando faz:
 
 - build da imagem da API;
@@ -241,6 +243,40 @@ Com esse token voce consegue acessar os endpoints protegidos por role `Admin`.
 6. Aprovar o pagamento em `POST /api/orders/{id}/pay`.
 7. Consultar a biblioteca em `GET /api/library`.
 
+### 7.1. Testando com Postman
+
+O projeto possui uma collection pronta para testar os principais endpoints:
+
+```text
+postman/FCG.API.postman_collection.json
+```
+
+Para usar:
+
+1. Abra o Postman.
+2. Clique em `Import`.
+3. Selecione o arquivo `postman/FCG.API.postman_collection.json`.
+4. Execute primeiro o request `Autenticacao > 01 - Login Admin`.
+
+Esse primeiro request usa o admin seedado:
+
+```text
+Email: fgc_admin@admin.com
+Senha: Adm!n123
+```
+
+Ao executar o login, a collection salva automaticamente o token JWT na variavel `adminToken`.
+
+Depois disso, siga os requests da collection na ordem sugerida para testar:
+
+- administracao de usuarios;
+- criacao de jogos;
+- promocoes;
+- registro/login de usuario comum;
+- criacao de pedido;
+- pagamento;
+- consulta da biblioteca.
+
 ### 8. Rodar em segundo plano
 
 Para deixar os containers em background:
@@ -266,6 +302,15 @@ Listar containers:
 ```bash
 docker compose ps
 ```
+
+Os nomes esperados dos containers sao:
+
+```text
+fcg_api
+fcg_sqlserver
+```
+
+Se o Docker Desktop mostrar um container com nome aleatorio, por exemplo `infallible_margulis`, ele provavelmente foi iniciado manualmente pela imagem e nao pelo Compose. Remova esse container e suba novamente com `docker compose up --build`.
 
 ### 9. Parar os containers
 
