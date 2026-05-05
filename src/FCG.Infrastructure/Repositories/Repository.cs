@@ -33,7 +33,8 @@ public abstract class Repository<TEntity>(AppDbContext context, Error notFoundEr
         var entry = Context.Entry(entity);
         if (entry.State == EntityState.Detached)
         {
-            Context.Set<TEntity>().Update(entity);
+            Context.Set<TEntity>().Attach(entity);
+            Context.Entry(entity).State = EntityState.Modified;
         }
 
         return Task.FromResult(Result.Success());
