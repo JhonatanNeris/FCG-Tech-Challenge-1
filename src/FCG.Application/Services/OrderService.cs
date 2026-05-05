@@ -44,14 +44,7 @@ public sealed class OrderService(
             userResult.Value.AddGameToLibrary(item.Game);
         }
 
-        var orderUpdateResult = await orderRepository.UpdateAsync(order);
-        if (orderUpdateResult.IsFailure)
-        {
-            return orderUpdateResult;
-        }
-
-        var userUpdateResult = await userRepository.UpdateAsync(userResult.Value);
-        return userUpdateResult.IsFailure ? userUpdateResult : await unitOfWork.CommitAsync();
+        return await unitOfWork.CommitAsync();
     }
 
     public async Task<Result<OrderDto>> CreateOrderAsync(Guid userId, CreateOrderDto dto)

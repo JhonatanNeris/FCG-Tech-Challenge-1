@@ -10,6 +10,7 @@ internal class PromotionMap() : IEntityTypeConfiguration<Promotion>
     {
 
         builder.HasKey(promotion => promotion.Id);
+        builder.Property(promotion => promotion.Id).ValueGeneratedNever();
         builder.Property(promotion => promotion.Name).IsRequired().HasMaxLength(150);
         builder.Property(promotion => promotion.DiscountPercentage).HasColumnType("decimal(5,2)");
         builder.Property(promotion => promotion.StartDate).IsRequired();

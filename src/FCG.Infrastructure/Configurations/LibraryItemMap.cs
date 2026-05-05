@@ -9,6 +9,7 @@ internal class LibraryItemMap() : IEntityTypeConfiguration<LibraryItem>
     public void Configure(EntityTypeBuilder<LibraryItem> builder)
     {
         builder.HasKey(libraryItem => libraryItem.Id);
+        builder.Property(libraryItem => libraryItem.Id).ValueGeneratedNever();
 
         builder.HasIndex(libraryItem => new { libraryItem.UserId, libraryItem.GameId }).IsUnique();
 

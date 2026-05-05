@@ -9,6 +9,7 @@ public class OrderMap() : IEntityTypeConfiguration<Order>
     public void Configure(EntityTypeBuilder<Order> builder)
     {
         builder.HasKey(order => order.Id);
+        builder.Property(order => order.Id).ValueGeneratedNever();
         builder.Property(order => order.TotalAmount).HasColumnType("decimal(18,2)");
         builder.Property(order => order.CreatedAt).IsRequired();
         builder.Property(order => order.Status).IsRequired();

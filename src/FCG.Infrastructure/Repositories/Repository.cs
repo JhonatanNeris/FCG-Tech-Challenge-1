@@ -30,7 +30,13 @@ public abstract class Repository<TEntity>(AppDbContext context, Error notFoundEr
 
     public virtual Task<Result> UpdateAsync(TEntity entity)
     {
-        Context.Set<TEntity>().Update(entity);
+        var entry = Context.Entry(entity);
+        if (entry.State == EntityState.Detached)
+        {
+            Context.Set<TEntity>().Attach(entity);
+            Context.Entry(entity).State = EntityState.Modified;
+        }
+
         return Task.FromResult(Result.Success());
     }
 
