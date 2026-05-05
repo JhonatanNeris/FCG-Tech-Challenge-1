@@ -22,4 +22,9 @@ public class User(string name, string email, string passwordHash, Role role) : E
             LibraryItems.Add(new LibraryItem(Id, game.Id));
         }
     }
+
+    public void ChangeRole(Role role)
+    {
+        Role = role;
+    }
 }

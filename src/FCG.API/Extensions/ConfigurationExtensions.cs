@@ -3,6 +3,7 @@ namespace FCG.API.Extensions;
 public sealed record ApiConfiguration(
     string ConnectionString,
     string SecretKey,
+    string AdminPassword,
     string JwtKey,
     string JwtIssuer,
     string JwtAudience,
@@ -18,6 +19,8 @@ public static class ConfigurationExtensions
         var secretKey = configuration["chave_secreta"]
             ?? throw new InvalidOperationException("A configuracao 'chave_secreta' e obrigatoria.");
 
+        var adminPassword = configuration["Admin_Password"] ?? "Adm!n123";
+
         var jwtKey = configuration["Jwt_Key"]
             ?? throw new InvalidOperationException("A configuracao 'Jwt_Key' e obrigatoria.");
 
@@ -30,6 +33,6 @@ public static class ConfigurationExtensions
             throw new InvalidOperationException("A configuracao 'Pagination:PageSize' deve ser maior ou igual a 1.");
         }
 
-        return new ApiConfiguration(connectionString, secretKey, jwtKey, jwtIssuer, jwtAudience, pageSize);
+        return new ApiConfiguration(connectionString, secretKey, adminPassword, jwtKey, jwtIssuer, jwtAudience, pageSize);
     }
 }

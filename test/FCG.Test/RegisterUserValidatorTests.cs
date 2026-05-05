@@ -35,4 +35,32 @@ public class RegisterUserValidatorTests()
         // Assert
         result.IsValid.Should().BeTrue();
     }
+
+    [Theory]
+    [InlineData("email-invalido")]
+    [InlineData("usuario@")]
+    public void Validate_ShouldHaveError_WhenEmailIsInvalid(string email)
+    {
+        var model = new RegisterUserDto("Joao", email, "Senha@123");
+
+        var result = _validator.Validate(model);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(error => error.PropertyName == "Email");
+    }
+
+    [Theory]
+    [InlineData("abc")]
+    [InlineData("abcdefgh")]
+    [InlineData("abc12345")]
+    [InlineData("abcdefg!")]
+    public void Validate_ShouldHaveError_WhenPasswordIsWeak(string password)
+    {
+        var model = new RegisterUserDto("Joao", "joao@email.com", password);
+
+        var result = _validator.Validate(model);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(error => error.PropertyName == "Password");
+    }
 }

@@ -6,4 +6,5 @@ namespace FCG.Domain.Interfaces;
 public interface IUserRepository : IRepository<User>
 {
     Task<Result<User>> GetByEmailAsync(string email);
+    Task<Result<PagedResult<User>>> GetAllAsync(PaginationParameters pagination);
 }

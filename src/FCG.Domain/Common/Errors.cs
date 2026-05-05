@@ -6,6 +6,7 @@ public static class Errors
     {
         public static Error InvalidCredentials => Error.Unauthorized("Auth.InvalidCredentials", "Credenciais invalidas.");
         public static Error RegisterFailed => Error.Validation("Auth.RegisterFailed", "Nao foi possivel concluir o cadastro com os dados informados.");
+        public static Error WeakPassword => Error.Validation("Auth.WeakPassword", "Senha deve ter no minimo 8 caracteres, letras, numeros e caracteres especiais.");
     }
 
     public static class Games
@@ -44,5 +45,7 @@ public static class Errors
     {
         public static Error NotFound => Error.NotFound("Users.NotFound", "Usuario nao encontrado.");
         public static Error NotFoundByEmail => Error.NotFound("Users.NotFoundByEmail", "Usuario nao encontrado.");
+        public static Error InvalidRole => Error.InvalidRequest("Users.InvalidRole", "Role informada e invalida.");
+        public static Error DefaultAdminCannotBeDeleted => Error.Validation("Users.DefaultAdminCannotBeDeleted", "O administrador default da aplicacao nao pode ser excluido.");
     }
 }

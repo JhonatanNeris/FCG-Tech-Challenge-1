@@ -7,7 +7,7 @@ builder.Services.AddApiDependencies(apiConfiguration);
 
 var app = builder.Build();
 
-await app.ApplyDatabaseMigrationsAsync(apiConfiguration.SecretKey);
+await app.ApplyDatabaseMigrationsAsync(apiConfiguration);
 app.UseApiPipeline();
 app.MapApiEndpoints();
 

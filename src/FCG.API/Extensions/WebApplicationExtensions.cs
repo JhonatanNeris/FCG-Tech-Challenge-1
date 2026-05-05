@@ -7,7 +7,7 @@ namespace FCG.API.Extensions;
 
 public static class WebApplicationExtensions
 {
-    public static async Task ApplyDatabaseMigrationsAsync(this WebApplication app, string secretKey)
+    public static async Task ApplyDatabaseMigrationsAsync(this WebApplication app, ApiConfiguration configuration)
     {
         using var scope = app.Services.CreateScope();
         var services = scope.ServiceProvider;
@@ -16,7 +16,7 @@ public static class WebApplicationExtensions
         {
             var context = services.GetRequiredService<AppDbContext>();
             context.Database.Migrate();
-            await DatabaseSeeder.SeedAsync(context, secretKey);
+            await DatabaseSeeder.SeedAsync(context, configuration.SecretKey, configuration.AdminPassword);
             Console.WriteLine("Banco de dados atualizado com sucesso!");
         }
         catch (Exception ex)
@@ -51,6 +51,7 @@ public static class WebApplicationExtensions
         app.MapGameEndpoints();
         app.MapPromotionEndpoints();
         app.MapOrderEndpoints();
+        app.MapAdminUserEndpoints();
 
         return app;
     }

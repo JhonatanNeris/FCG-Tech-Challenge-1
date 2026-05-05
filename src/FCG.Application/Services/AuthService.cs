@@ -31,6 +31,11 @@ public sealed class AuthService(
 
     public async Task<Result> RegisterAsync(RegisterUserDto dto)
     {
+        if (!PasswordPolicy.IsStrong(dto.Password))
+        {
+            return Result.Failure(Errors.Auth.WeakPassword);
+        }
+
         var existingUser = await userRepository.GetByEmailAsync(dto.Email);
         if (existingUser.IsSuccess)
         {
