@@ -25,11 +25,11 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FCGDb;User Id=sa;Password=ArquiteturaFiap.NET@2026;TrustServerCertificate=True;
-      - chave_secreta=fgc_tech_challenge
-      - Admin_Password=Adm!n123
-      - Jwt_Key=zR8pW5vB9yX2mN4qA7L1jK9sT6uE3hG0fD5cX8vB2nN1mQ4wZ7xR0tY3uI6pP9oL
-      - Jwt_Issuer=FCG.API
-      - Jwt_Audience=FCG.API
+      - CHAVE_SECRETA=fgc_tech_challenge
+      - ADMIN_PASSWORD=Adm!n123
+      - JWT_KEY=zR8pW5vB9yX2mN4qA7L1jK9sT6uE3hG0fD5cX8vB2nN1mQ4wZ7xR0tY3uI6pP9oL
+      - JWT_ISSUER=FCG.API
+      - JWT_AUDIENCE=FCG.API
     ports:
       - "5169:8080"
     depends_on:

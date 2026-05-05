@@ -168,6 +168,8 @@ Ou, usando o comando legado:
 docker-compose up --build
 ```
 
+Importante: suba pelo Compose na raiz do repositorio. Se voce executar a imagem manualmente pelo Docker Desktop, as variaveis do `docker-compose.yml` nao serao aplicadas e a API pode falhar com erro de configuracao obrigatoria, como `chave_secreta`.
+
 Esse comando faz:
 
 - build da imagem da API;
@@ -266,6 +268,15 @@ Listar containers:
 ```bash
 docker compose ps
 ```
+
+Os nomes esperados dos containers sao:
+
+```text
+fcg_api
+fcg_sqlserver
+```
+
+Se o Docker Desktop mostrar um container com nome aleatorio, por exemplo `infallible_margulis`, ele provavelmente foi iniciado manualmente pela imagem e nao pelo Compose. Remova esse container e suba novamente com `docker compose up --build`.
 
 ### 9. Parar os containers
 

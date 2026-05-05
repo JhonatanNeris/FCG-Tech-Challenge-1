@@ -16,16 +16,22 @@ public static class ConfigurationExtensions
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("A configuracao 'ConnectionStrings:DefaultConnection' e obrigatoria.");
 
-        var secretKey = configuration["chave_secreta"]
-            ?? throw new InvalidOperationException("A configuracao 'chave_secreta' e obrigatoria.");
+        var secretKey = configuration.GetRequiredValue(
+            "chave_secreta",
+            "CHAVE_SECRETA",
+            "Auth__SecretKey");
 
-        var adminPassword = configuration["Admin_Password"] ?? "Adm!n123";
+        var adminPassword = configuration.GetOptionalValue(
+            "Admin_Password",
+            "ADMIN_PASSWORD") ?? "Adm!n123";
 
-        var jwtKey = configuration["Jwt_Key"]
-            ?? throw new InvalidOperationException("A configuracao 'Jwt_Key' e obrigatoria.");
+        var jwtKey = configuration.GetRequiredValue(
+            "Jwt_Key",
+            "JWT_KEY",
+            "Jwt__Key");
 
-        var jwtIssuer = configuration["Jwt_Issuer"] ?? "FCG.API";
-        var jwtAudience = configuration["Jwt_Audience"] ?? "FCG.API";
+        var jwtIssuer = configuration.GetOptionalValue("Jwt_Issuer", "JWT_ISSUER", "Jwt__Issuer") ?? "FCG.API";
+        var jwtAudience = configuration.GetOptionalValue("Jwt_Audience", "JWT_AUDIENCE", "Jwt__Audience") ?? "FCG.API";
 
         var pageSize = configuration.GetValue<int?>("Pagination:PageSize") ?? 30;
         if (pageSize < 1)
@@ -34,5 +40,25 @@ public static class ConfigurationExtensions
         }
 
         return new ApiConfiguration(connectionString, secretKey, adminPassword, jwtKey, jwtIssuer, jwtAudience, pageSize);
+    }
+
+    private static string GetRequiredValue(this IConfiguration configuration, params string[] keys)
+    {
+        return configuration.GetOptionalValue(keys)
+            ?? throw new InvalidOperationException($"A configuracao '{keys[0]}' e obrigatoria.");
+    }
+
+    private static string? GetOptionalValue(this IConfiguration configuration, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            var value = configuration[key];
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return null;
     }
 }
