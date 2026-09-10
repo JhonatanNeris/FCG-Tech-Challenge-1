@@ -11,7 +11,8 @@ public sealed class OrderService(
     IOrderRepository orderRepository,
     IUserRepository userRepository,
     IPromotionRepository promotionRepository,
-    IUnitOfWork unitOfWork) : IOrderService
+    IUnitOfWork unitOfWork,
+    INotificationPublisher notificationPublisher) : IOrderService
 {
     public async Task<Result> ApprovePaymentAsync(Guid orderId, Guid currentUserId, bool isAdmin)
     {
@@ -44,7 +45,14 @@ public sealed class OrderService(
             userResult.Value.AddGameToLibrary(item.Game);
         }
 
-        return await unitOfWork.CommitAsync();
+        var commitResult = await unitOfWork.CommitAsync();
+        if (commitResult.IsSuccess)
+        {
+            var gameIds = order.Items.Select(item => item.GameId);
+            await notificationPublisher.PublishOrderPaidAsync(order.Id, order.UserId, gameIds);
+        }
+
+        return commitResult;
     }
 
     public async Task<Result<OrderDto>> CreateOrderAsync(Guid userId, CreateOrderDto dto)

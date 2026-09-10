@@ -1,4 +1,5 @@
 using FCG.Application.DTOs;
+using FCG.Application.Interfaces;
 using FCG.Application.Services;
 using FCG.Application.Settings;
 using FCG.Domain.Common;
@@ -167,7 +168,8 @@ public class ApplicationServiceTests
             orderRepository,
             new FakeUserRepository(),
             new FakePromotionRepository(promotion),
-            unitOfWork);
+            unitOfWork,
+            new FakeNotificationPublisher());
 
         var result = await service.CreateOrderAsync(Guid.NewGuid(), new CreateOrderDto([game.Id]));
 
@@ -185,7 +187,8 @@ public class ApplicationServiceTests
             new FakeOrderRepository(),
             new FakeUserRepository(),
             new FakePromotionRepository(),
-            new FakeUnitOfWork());
+            new FakeUnitOfWork(),
+            new FakeNotificationPublisher());
 
         var result = await service.CreateOrderAsync(Guid.NewGuid(), new CreateOrderDto([]));
 
@@ -203,12 +206,37 @@ public class ApplicationServiceTests
             new FakeOrderRepository(order),
             new FakeUserRepository(),
             new FakePromotionRepository(),
-            new FakeUnitOfWork());
+            new FakeUnitOfWork(),
+            new FakeNotificationPublisher());
 
         var result = await service.GetUserOrdersAsync(userId);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().ContainSingle(orderDto => orderDto.Id == order.Id);
+    }
+
+    [Fact]
+    public async Task OrderService_ApprovePaymentAsync_ShouldPublishNotification_WhenPaymentSucceeds()
+    {
+        var userId = Guid.NewGuid();
+        var order = new Order(userId);
+        var game = new Game("Test Game", "Desc", 50);
+        order.AddItem(game.Id, 50);
+        order.Items.First().Game = game;
+
+        var publisher = new FakeNotificationPublisher();
+        var service = new OrderService(
+            new FakeGameRepository(game),
+            new FakeOrderRepository(order),
+            new FakeUserRepository(),
+            new FakePromotionRepository(),
+            new FakeUnitOfWork(),
+            publisher);
+
+        var result = await service.ApprovePaymentAsync(order.Id, userId, isAdmin: false);
+
+        result.IsSuccess.Should().BeTrue();
+        publisher.PublishedOrderIds.Should().Contain(order.Id);
     }
 
     private static GameService CreateGameService(Game? game = null, FakeUnitOfWork? unitOfWork = null)
@@ -334,6 +362,17 @@ public class ApplicationServiceTests
         {
             CommitCount++;
             return Task.FromResult(Result.Success());
+        }
+    }
+
+    private sealed class FakeNotificationPublisher : INotificationPublisher
+    {
+        public List<Guid> PublishedOrderIds { get; } = [];
+
+        public Task PublishOrderPaidAsync(Guid orderId, Guid userId, IEnumerable<Guid> gameIds, CancellationToken cancellationToken = default)
+        {
+            PublishedOrderIds.Add(orderId);
+            return Task.CompletedTask;
         }
     }
 }

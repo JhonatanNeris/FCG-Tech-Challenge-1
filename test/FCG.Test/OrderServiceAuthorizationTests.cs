@@ -1,4 +1,5 @@
 using FCG.Application.DTOs;
+using FCG.Application.Interfaces;
 using FCG.Application.Services;
 using FCG.Domain.Common;
 using FCG.Domain.Entities;
@@ -80,7 +81,8 @@ public class OrderServiceAuthorizationTests
             orderRepository,
             userRepository,
             new FakePromotionRepository(),
-            unitOfWork);
+            unitOfWork,
+            new FakeNotificationPublisher());
 
         var result = await service.ApprovePaymentAsync(order.Id, ownerId, isAdmin: false);
 
@@ -98,7 +100,8 @@ public class OrderServiceAuthorizationTests
             new FakeOrderRepository(order),
             new FakeUserRepository(new User("Owner", "owner@email.com", "hash", Role.User)),
             new FakePromotionRepository(),
-            unitOfWork ?? new FakeUnitOfWork());
+            unitOfWork ?? new FakeUnitOfWork(),
+            new FakeNotificationPublisher());
     }
 
     private sealed class FakeOrderRepository(Order order) : IOrderRepository
@@ -165,6 +168,14 @@ public class OrderServiceAuthorizationTests
         {
             CommitCount++;
             return Task.FromResult(Result.Success());
+        }
+    }
+
+    private sealed class FakeNotificationPublisher : INotificationPublisher
+    {
+        public Task PublishOrderPaidAsync(Guid orderId, Guid userId, IEnumerable<Guid> gameIds, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
         }
     }
 }

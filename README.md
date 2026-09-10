@@ -101,6 +101,8 @@ Admin_Password
 Jwt_Key
 Jwt_Issuer
 Jwt_Audience
+Sqs__NotificationsQueueUrl
+AWS__Region
 ```
 
 ## Executando Todo o Projeto com Docker Compose

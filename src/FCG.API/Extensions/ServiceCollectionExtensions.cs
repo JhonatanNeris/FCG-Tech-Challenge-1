@@ -1,4 +1,6 @@
 using System.Text;
+using Amazon;
+using Amazon.SQS;
 using FCG.API.Middlewares;
 using FCG.Application.Interfaces;
 using FCG.Application.Services;
@@ -23,6 +25,7 @@ public static class ServiceCollectionExtensions
         services
             .AddDatabase(configuration.ConnectionString)
             .AddRepositories()
+            .AddMessagingServices()
             .AddApplicationServices(configuration)
             .AddApiAuthentication(configuration)
             .AddApiExceptionHandling()
@@ -138,6 +141,32 @@ public static class ServiceCollectionExtensions
                 }
             });
         });
+
+        return services;
+    }
+
+    private static IServiceCollection AddMessagingServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IAmazonSQS>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var regionName = config["AWS:Region"] ?? config["AWS__Region"] ?? "us-east-1";
+            var regionEndpoint = RegionEndpoint.GetBySystemName(regionName);
+
+            var serviceUrl = config["AWS:ServiceURL"] ?? config["AWS__ServiceURL"];
+            if (!string.IsNullOrWhiteSpace(serviceUrl))
+            {
+                return new AmazonSQSClient(new AmazonSQSConfig
+                {
+                    ServiceURL = serviceUrl,
+                    AuthenticationRegion = regionEndpoint.SystemName
+                });
+            }
+
+            return new AmazonSQSClient(regionEndpoint);
+        });
+
+        services.AddScoped<INotificationPublisher, SqsNotificationPublisher>();
 
         return services;
     }
